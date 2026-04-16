@@ -171,6 +171,26 @@ export default function AdminSettings() {
 
       <Button onClick={handleSave} size="lg" className="w-full">Save All Settings</Button>
 
+      {/* Navigation Visibility */}
+      <Card>
+        <CardHeader><CardTitle>Navigation</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">These pages exist but are hidden from the main navigation. Toggle to make them visible to customers.</p>
+          {navItems.map(item => (
+            <div key={item.key} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div>
+                <p className="text-sm font-medium">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.path}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{item.visible ? "Visible" : "Hidden"}</span>
+                <Switch checked={item.visible} onCheckedChange={() => toggleItem(item.key)} />
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {/* Invoice Payment Settings */}
       <Card>
         <CardHeader><CardTitle>Invoice Payment Settings</CardTitle></CardHeader>
