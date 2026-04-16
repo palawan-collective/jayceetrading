@@ -9,7 +9,8 @@ import { useCartStore } from "@/lib/cart-store";
 import { useBusinessSettings, usePaymentMethods } from "@/hooks/use-settings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, QrCode } from "lucide-react";
+import { ArrowLeft, QrCode, Gift, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { getDiscountPercent } from "@/lib/loyalty-utils";
 
 const COUNTRY_CODES = [
   { code: "+63", country: "PH" },
