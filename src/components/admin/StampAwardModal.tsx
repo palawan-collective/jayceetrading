@@ -27,15 +27,14 @@ export default function StampAwardModal({ order, open, onClose }: Props) {
   const customerName = order?.customer_name || "";
 
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
-  const [loaded, setLoaded] = useState(false);
 
   // Load customer on open
-  useState(() => {
+  useMemo(() => {
     if (open && customerPhone) {
       supabase.from("loyalty_customers").select("*").eq("phone", customerPhone).maybeSingle()
-        .then(({ data }) => { setExistingCustomer(data); setLoaded(true); });
+        .then(({ data }) => { setExistingCustomer(data); });
     }
-  });
+  }, [open, customerPhone]);
 
   const currentStamps = existingCustomer?.stamp_count || 0;
   const lifetimeStamps = existingCustomer?.lifetime_stamps || 0;
