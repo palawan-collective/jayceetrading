@@ -25,6 +25,7 @@ import AdminHeaderFooter from "./components/admin/AdminHeaderFooter";
 import AdminCategories from "./components/admin/AdminCategories";
 import AdminUnits from "./components/admin/AdminUnits";
 import DynamicPage from "./pages/DynamicPage";
+import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,8 @@ const App = () => (
                 {/* User Routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/:slug" element={<DynamicPage />} />
                 <Route path="/:slug" element={<DynamicPage />} />
 
                 {/* Admin Routes with Layout */}

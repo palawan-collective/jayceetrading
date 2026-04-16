@@ -32,12 +32,16 @@ export default function AdminSettings() {
     setUploading(true);
     const ext = file.name.split(".").pop();
     const fileName = `logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(fileName, file);
-    if (error) { toast.error("Upload failed"); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-    setForm((f: any) => ({ ...f, logo_url: urlData.publicUrl }));
+    const { error } = await supabase.storage.from("logos").upload(fileName, file, { upsert: true });
+    if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(fileName);
+    const logoUrl = urlData.publicUrl;
+    // Save to DB immediately
+    await supabase.from("business_settings").update({ logo_url: logoUrl }).eq("id", 1);
+    setForm((f: any) => ({ ...f, logo_url: logoUrl }));
     setUploading(false);
-    toast.success("Logo uploaded");
+    toast.success("Logo uploaded and saved");
+    qc.invalidateQueries({ queryKey: ["business-settings"] });
   };
 
   const handleSave = async () => {
@@ -68,13 +72,14 @@ export default function AdminSettings() {
       <Card>
         <CardHeader><CardTitle>Logo</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <input type="file" ref={logoInputRef} accept="image/*" onChange={handleLogoUpload} className="hidden" />
+          <input type="file" ref={logoInputRef} accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} className="hidden" />
           <div className="flex items-center gap-4">
             {form.logo_url && <img src={form.logo_url} alt="Logo" className="w-16 h-16 rounded object-cover" />}
             <Button variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploading} className="gap-2">
               <Upload className="h-4 w-4" /> {uploading ? "Uploading..." : "Upload Logo"}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Uploads to the logos bucket. Accepts JPG, PNG, WebP.</p>
         </CardContent>
       </Card>
 
