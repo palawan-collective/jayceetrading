@@ -55,20 +55,23 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
-          <TabsTrigger value="products" className="text-xs">Products</TabsTrigger>
-          <TabsTrigger value="orders" className="text-xs">Orders</TabsTrigger>
-          <TabsTrigger value="specials" className="text-xs">Specials</TabsTrigger>
-          <TabsTrigger value="payments" className="text-xs">Payments</TabsTrigger>
-          <TabsTrigger value="pages" className="text-xs">Pages</TabsTrigger>
-          <TabsTrigger value="testimonials" className="text-xs">Reviews</TabsTrigger>
-          <TabsTrigger value="newsletter" className="text-xs">Newsletter</TabsTrigger>
-          <TabsTrigger value="contacts" className="text-xs">Contacts</TabsTrigger>
-          <TabsTrigger value="header-footer" className="text-xs">Header/Footer</TabsTrigger>
-          <TabsTrigger value="loyalty" className="text-xs">Loyalty</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          <TabsList className="flex overflow-x-auto gap-1 p-1 h-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
+            <TabsTrigger value="dashboard" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Dashboard</TabsTrigger>
+            <TabsTrigger value="products" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Products</TabsTrigger>
+            <TabsTrigger value="orders" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Orders</TabsTrigger>
+            <TabsTrigger value="specials" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Specials</TabsTrigger>
+            <TabsTrigger value="payments" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Payments</TabsTrigger>
+            <TabsTrigger value="pages" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Pages</TabsTrigger>
+            <TabsTrigger value="testimonials" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Reviews</TabsTrigger>
+            <TabsTrigger value="newsletter" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Newsletter</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Contacts</TabsTrigger>
+            <TabsTrigger value="loyalty" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Loyalty</TabsTrigger>
+            <TabsTrigger value="header-footer" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Header/Footer</TabsTrigger>
+            <TabsTrigger value="settings" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Settings</TabsTrigger>
+          </TabsList>
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-muted to-transparent pointer-events-none" />
+        </div>
 
         <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
         <TabsContent value="products"><AdminProducts /></TabsContent>
