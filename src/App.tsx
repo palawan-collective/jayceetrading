@@ -47,6 +47,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/faq" element={<FAQ />} />
+                <Route path="/invoice/:orderId" element={<Invoice />} />
                 <Route path="/:slug" element={<DynamicPage />} />
 
                 {/* Admin Routes with Layout */}

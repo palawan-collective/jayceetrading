@@ -66,7 +66,10 @@ export default function AdminSettings() {
     const { error } = await supabase.storage.from("logos").upload(fileName, file, { upsert: true });
     if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(fileName);
-    await supabase.from("payment_settings").update({ [field]: urlData.publicUrl }).eq("id", 1);
+    const updatePayload = field === "gcash_qr_url" 
+      ? { gcash_qr_url: urlData.publicUrl } 
+      : { phqr_qr_url: urlData.publicUrl };
+    await supabase.from("payment_settings").update(updatePayload).eq("id", 1);
     setPsForm((f: any) => ({ ...f, [field]: urlData.publicUrl }));
     setUploading(false);
     toast.success("QR code uploaded");
