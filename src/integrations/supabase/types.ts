@@ -279,6 +279,7 @@ export type Database = {
           email_confirmation_sent: boolean
           email_ready_sent: boolean
           id: string
+          invoice_number: string | null
           items: Json
           order_status: string
           paid_at: string | null
@@ -304,6 +305,7 @@ export type Database = {
           email_confirmation_sent?: boolean
           email_ready_sent?: boolean
           id: string
+          invoice_number?: string | null
           items?: Json
           order_status?: string
           paid_at?: string | null
@@ -329,6 +331,7 @@ export type Database = {
           email_confirmation_sent?: boolean
           email_ready_sent?: boolean
           id?: string
+          invoice_number?: string | null
           items?: Json
           order_status?: string
           paid_at?: string | null
@@ -374,11 +377,15 @@ export type Database = {
           bank_account_number: string | null
           bank_branch: string | null
           bank_name: string | null
+          cod_instructions: string | null
+          cop_instructions: string | null
           gcash_qr_url: string | null
           id: number
           invoice_layout: string
           phqr_qr_url: string | null
           show_bank_on_invoice: boolean
+          show_cod_on_invoice: boolean
+          show_cop_on_invoice: boolean
           show_gcash_on_invoice: boolean
           show_phqr_on_invoice: boolean
         }
@@ -387,11 +394,15 @@ export type Database = {
           bank_account_number?: string | null
           bank_branch?: string | null
           bank_name?: string | null
+          cod_instructions?: string | null
+          cop_instructions?: string | null
           gcash_qr_url?: string | null
           id?: number
           invoice_layout?: string
           phqr_qr_url?: string | null
           show_bank_on_invoice?: boolean
+          show_cod_on_invoice?: boolean
+          show_cop_on_invoice?: boolean
           show_gcash_on_invoice?: boolean
           show_phqr_on_invoice?: boolean
         }
@@ -400,11 +411,15 @@ export type Database = {
           bank_account_number?: string | null
           bank_branch?: string | null
           bank_name?: string | null
+          cod_instructions?: string | null
+          cop_instructions?: string | null
           gcash_qr_url?: string | null
           id?: number
           invoice_layout?: string
           phqr_qr_url?: string | null
           show_bank_on_invoice?: boolean
+          show_cod_on_invoice?: boolean
+          show_cop_on_invoice?: boolean
           show_gcash_on_invoice?: boolean
           show_phqr_on_invoice?: boolean
         }

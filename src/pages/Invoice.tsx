@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Clock, Printer } from "lucide-react";
 
 export default function Invoice() {
   const { orderId } = useParams<{ orderId: string }>();
 
-  const { data: order, isLoading: loadingOrder } = useQuery({
+  const { data: order, isLoading } = useQuery({
     queryKey: ["invoice-order", orderId],
     queryFn: async () => {
       const { data, error } = await supabase.from("orders").select("*").eq("id", orderId!).single();
@@ -35,142 +36,195 @@ export default function Invoice() {
     },
   });
 
-  if (loadingOrder) return <div className="p-8 text-center text-muted-foreground">Loading invoice...</div>;
-  if (!order) return <div className="p-8 text-center text-muted-foreground">Order not found.</div>;
+  if (isLoading) return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-500">Loading invoice...</div>;
+  if (!order) return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-500">Order not found.</div>;
 
   const isPaid = order.payment_status === "paid";
   const items = order.items as any[];
   const currency = settings?.currency_symbol || "₱";
-  const showAll = paymentSettings?.invoice_layout !== "show_selected";
+  const showAll = (paymentSettings as any)?.invoice_layout !== "show_selected";
+  const pm = order.payment_method?.toLowerCase() || "";
 
-  const shouldShowGcash = paymentSettings?.show_gcash_on_invoice && paymentSettings?.gcash_qr_url && (showAll || order.payment_method?.toLowerCase().includes("gcash"));
-  const shouldShowPhqr = paymentSettings?.show_phqr_on_invoice && paymentSettings?.phqr_qr_url && (showAll || order.payment_method?.toLowerCase().includes("phqr"));
-  const shouldShowBank = paymentSettings?.show_bank_on_invoice && paymentSettings?.bank_name && (showAll || order.payment_method?.toLowerCase().includes("bank"));
+  const shouldShowGcash = paymentSettings?.show_gcash_on_invoice && paymentSettings?.gcash_qr_url && (showAll || pm.includes("gcash"));
+  const shouldShowPhqr = paymentSettings?.show_phqr_on_invoice && paymentSettings?.phqr_qr_url && (showAll || pm.includes("phqr"));
+  const shouldShowBank = paymentSettings?.show_bank_on_invoice && paymentSettings?.bank_name && (showAll || pm.includes("bank"));
+  const shouldShowCod = (paymentSettings as any)?.show_cod_on_invoice && (showAll || pm.includes("cod") || pm.includes("cash on delivery"));
+  const shouldShowCop = (paymentSettings as any)?.show_cop_on_invoice && (showAll || pm.includes("pickup") || pm.includes("cash on pickup"));
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-6 print:p-0">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-12 mx-auto rounded" />}
-        <h1 className="text-xl font-bold">{settings?.business_name || "Invoice"}</h1>
-        <p className="text-xs text-muted-foreground">{settings?.business_address}</p>
-        <p className="text-xs text-muted-foreground">{settings?.business_phone} · {settings?.business_email}</p>
+    <div className="min-h-screen bg-gray-100 py-6 px-4 print:bg-white print:py-0">
+      {/* Print button */}
+      <div className="max-w-2xl mx-auto mb-4 print:hidden">
+        <Button variant="outline" onClick={() => window.print()} className="gap-2">
+          <Printer className="h-4 w-4" /> Print Invoice
+        </Button>
       </div>
 
-      {/* Order Info */}
-      <div className="border border-border rounded-lg p-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Order ID</span>
-          <span className="font-mono text-xs">{order.id}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Customer</span>
-          <span>{order.customer_name}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Phone</span>
-          <span>{order.customer_phone}</span>
-        </div>
-        {order.customer_email && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Email</span>
-            <span>{order.customer_email}</span>
-          </div>
-        )}
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Delivery</span>
-          <span className="capitalize">{order.delivery_type}</span>
-        </div>
-        {order.delivery_address && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Address</span>
-            <span className="text-right max-w-[60%]">{order.delivery_address}</span>
-          </div>
-        )}
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Payment Method</span>
-          <span className="capitalize">{order.payment_method}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Date</span>
-          <span>{new Date(order.created_at).toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* Items */}
-      <div className="border border-border rounded-lg p-4 space-y-2">
-        <p className="font-semibold text-sm">Items</p>
-        {items.map((item: any, idx: number) => (
-          <div key={idx} className="flex justify-between text-sm">
-            <span>{item.name} × {item.quantity}</span>
-            <span>{currency}{(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        ))}
-        <div className="flex justify-between text-sm font-bold border-t border-border pt-2">
-          <span>Total</span>
-          <span>{currency}{Number(order.total_price).toFixed(2)}</span>
-        </div>
-      </div>
-
-      {/* Payment Status */}
-      {isPaid ? (
-        <div className="border-2 border-red-500 rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <CheckCircle className="h-6 w-6 text-green-500" />
-            <Badge className="bg-green-500/20 text-green-500 text-lg px-4 py-1">PAID</Badge>
-          </div>
-          <div className="text-center space-y-1 text-sm">
-            {order.paid_via && <p>Paid via: <span className="capitalize font-medium">{order.paid_via}</span></p>}
-            <p>Amount: <span className="font-bold">{currency}{Number(order.total_price).toFixed(2)}</span></p>
-            {order.paid_at && <p>Transaction completed: {new Date(order.paid_at).toLocaleString()}</p>}
-            <p className="text-green-500 font-medium pt-1">Thank you for your payment!</p>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <Clock className="h-5 w-5 text-yellow-500" />
-            <Badge className="bg-yellow-500/20 text-yellow-500 text-base px-3 py-1">PENDING PAYMENT</Badge>
-          </div>
-
-          {(shouldShowGcash || shouldShowPhqr || shouldShowBank) && (
-            <div className="border border-border rounded-lg p-4 space-y-4">
-              <p className="text-sm text-center text-muted-foreground">Scan QR code or use bank transfer to complete payment</p>
-
-              {shouldShowGcash && (
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-semibold">GCash</p>
-                  <img src={paymentSettings!.gcash_qr_url!} alt="GCash QR" className="max-w-[200px] mx-auto rounded border" />
-                </div>
+      {/* Invoice Paper */}
+      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        
+        {/* Header */}
+        <div className="border-b-2 border-orange-500 p-6 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {settings?.logo_url && (
+                <img src={settings.logo_url} alt="Logo" className="h-14 w-14 rounded-lg object-cover" />
               )}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{settings?.business_name || "Business"}</h1>
+                <p className="text-xs text-gray-500">{settings?.business_address}</p>
+                <p className="text-xs text-gray-500">{settings?.business_phone} · {settings?.business_email}</p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-2xl font-bold text-gray-900">INVOICE</p>
+              <p className="text-xs text-gray-500 font-mono">{(order as any).invoice_number || order.id}</p>
+            </div>
+          </div>
+        </div>
 
-              {shouldShowPhqr && (
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-semibold">PHQR</p>
-                  <img src={paymentSettings!.phqr_qr_url!} alt="PHQR QR" className="max-w-[200px] mx-auto rounded border" />
-                </div>
-              )}
-
-              {shouldShowBank && (
-                <div className="text-center space-y-1 text-sm">
-                  <p className="font-semibold">Bank Transfer</p>
-                  <p>Bank: {paymentSettings!.bank_name}</p>
-                  <p>Account Name: {paymentSettings!.bank_account_name}</p>
-                  <p>Account Number: <span className="font-mono">{paymentSettings!.bank_account_number}</span></p>
-                  {paymentSettings!.bank_branch && <p>Branch: {paymentSettings!.bank_branch}</p>}
-                </div>
+        {/* Invoice Details & Customer Info */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-6 border-b border-gray-200">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Bill To</p>
+            <p className="text-sm font-semibold text-gray-900">{order.customer_name}</p>
+            <p className="text-xs text-gray-600">{order.customer_phone}</p>
+            {order.customer_email && <p className="text-xs text-gray-600">{order.customer_email}</p>}
+            {order.delivery_address && <p className="text-xs text-gray-600 mt-1">{order.delivery_address}</p>}
+          </div>
+          <div className="sm:text-right">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Invoice Details</p>
+            <p className="text-xs text-gray-600">Date: {new Date(order.created_at).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-600">Time: {new Date(order.created_at).toLocaleTimeString()}</p>
+            <p className="text-xs text-gray-600">Order: {order.id}</p>
+            <p className="text-xs text-gray-600 capitalize">Delivery: {order.delivery_type}</p>
+            <p className="text-xs text-gray-600 capitalize">Payment: {order.payment_method}</p>
+            <div className="mt-2">
+              {isPaid ? (
+                <Badge className="bg-green-100 text-green-700 border border-green-300 text-xs">PAID</Badge>
+              ) : (
+                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 text-xs">PENDING</Badge>
               )}
             </div>
-          )}
+          </div>
         </div>
-      )}
 
-      {/* Order Status */}
-      <div className="text-center text-xs text-muted-foreground space-y-0.5">
-        <p>Order Status: <span className="capitalize font-medium">{order.order_status}</span></p>
-        {order.confirmed_at && <p>Confirmed: {new Date(order.confirmed_at).toLocaleString()}</p>}
-        {order.ready_at && <p>Ready: {new Date(order.ready_at).toLocaleString()}</p>}
-        {order.completed_at && <p>Completed: {new Date(order.completed_at).toLocaleString()}</p>}
+        {/* Items Table */}
+        <div className="p-6 border-b border-gray-200">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b-2 border-gray-200">
+                <th className="text-left py-2 text-xs font-semibold text-gray-400 uppercase">Qty</th>
+                <th className="text-left py-2 text-xs font-semibold text-gray-400 uppercase">Item</th>
+                <th className="text-right py-2 text-xs font-semibold text-gray-400 uppercase">Unit Price</th>
+                <th className="text-right py-2 text-xs font-semibold text-gray-400 uppercase">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item: any, idx: number) => (
+                <tr key={idx} className="border-b border-gray-100">
+                  <td className="py-2 text-gray-700">{item.quantity}</td>
+                  <td className="py-2 text-gray-900 font-medium">{item.name}</td>
+                  <td className="py-2 text-right text-gray-700">{currency}{Number(item.price).toFixed(2)}</td>
+                  <td className="py-2 text-right text-gray-900 font-medium">{currency}{(item.price * item.quantity).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col items-end space-y-1">
+            <div className="flex justify-between w-full max-w-xs text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="text-gray-700">{currency}{Number(order.subtotal || order.total_price).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between w-full max-w-xs text-sm border-t-2 border-gray-900 pt-2 mt-2">
+              <span className="font-bold text-gray-900 text-base">Grand Total</span>
+              <span className="font-bold text-gray-900 text-base">{currency}{Number(order.total_price).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Section */}
+        {isPaid ? (
+          <div className="p-6">
+            <div className="border-2 border-red-400 rounded-lg p-5 bg-green-50">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <CheckCircle className="h-7 w-7 text-green-600" />
+                <span className="text-xl font-bold text-green-700">PAYMENT CONFIRMED</span>
+              </div>
+              <div className="text-center space-y-1 text-sm text-gray-700">
+                {order.paid_via && <p>Paid via: <span className="font-semibold capitalize">{order.paid_via}</span></p>}
+                <p>Amount: <span className="font-bold text-green-700">{currency}{Number(order.total_price).toFixed(2)}</span></p>
+                {order.paid_at && <p className="text-xs text-gray-500">Transaction completed: {new Date(order.paid_at).toLocaleString()}</p>}
+                <p className="text-green-600 font-medium pt-2">Thank you for your payment!</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <span className="text-lg font-bold text-yellow-700">PENDING PAYMENT</span>
+            </div>
+
+            {(shouldShowGcash || shouldShowPhqr || shouldShowBank || shouldShowCod || shouldShowCop) && (
+              <div className="border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50">
+                <p className="text-sm text-center text-gray-500 font-medium">Payment Instructions</p>
+
+                {shouldShowGcash && (
+                  <div className="text-center space-y-2 border-b border-gray-200 pb-4">
+                    <p className="text-sm font-bold text-blue-600">GCash</p>
+                    <img src={paymentSettings!.gcash_qr_url!} alt="GCash QR" className="max-w-[180px] mx-auto rounded border border-gray-300" />
+                    <p className="text-xs text-gray-500">Scan to pay via GCash</p>
+                  </div>
+                )}
+
+                {shouldShowPhqr && (
+                  <div className="text-center space-y-2 border-b border-gray-200 pb-4">
+                    <p className="text-sm font-bold text-blue-600">PHQR</p>
+                    <img src={paymentSettings!.phqr_qr_url!} alt="PHQR QR" className="max-w-[180px] mx-auto rounded border border-gray-300" />
+                    <p className="text-xs text-gray-500">Scan to pay via PHQR</p>
+                  </div>
+                )}
+
+                {shouldShowBank && (
+                  <div className="text-center space-y-1 text-sm border-b border-gray-200 pb-4">
+                    <p className="font-bold text-gray-700">Bank Transfer</p>
+                    <p className="text-gray-600">Bank: <span className="font-medium">{paymentSettings!.bank_name}</span></p>
+                    <p className="text-gray-600">Account Name: <span className="font-medium">{paymentSettings!.bank_account_name}</span></p>
+                    <p className="text-gray-600">Account Number: <span className="font-mono font-medium">{paymentSettings!.bank_account_number}</span></p>
+                    {paymentSettings!.bank_branch && <p className="text-gray-600">Branch: {paymentSettings!.bank_branch}</p>}
+                  </div>
+                )}
+
+                {shouldShowCod && (
+                  <div className="text-center space-y-1 text-sm border-b border-gray-200 pb-4 last:border-b-0">
+                    <p className="font-bold text-gray-700">Cash on Delivery</p>
+                    <p className="text-gray-600">{(paymentSettings as any)?.cod_instructions || "Please prepare the exact amount for Cash on Delivery."}</p>
+                  </div>
+                )}
+
+                {shouldShowCop && (
+                  <div className="text-center space-y-1 text-sm">
+                    <p className="font-bold text-gray-700">Cash on Pickup</p>
+                    <p className="text-gray-600">{(paymentSettings as any)?.cop_instructions || "Please pay at the counter upon pickup."}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Order Status Footer */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50 text-center text-xs text-gray-400 space-y-0.5">
+          <p>Order Status: <span className="capitalize font-medium text-gray-600">{order.order_status}</span></p>
+          {order.confirmed_at && <p>Confirmed: {new Date(order.confirmed_at).toLocaleString()}</p>}
+          {order.ready_at && <p>Ready: {new Date(order.ready_at).toLocaleString()}</p>}
+          {order.completed_at && <p>Completed: {new Date(order.completed_at).toLocaleString()}</p>}
+        </div>
       </div>
     </div>
   );
