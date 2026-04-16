@@ -76,7 +76,7 @@ export default function TrackOrder() {
   const { data: loyaltyRewards } = useQuery({
     queryKey: ["loyalty-rewards", loyaltyCustomer?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("loyalty_rewards").select("*").eq("customer_id", loyaltyCustomer!.id).order("earned_at", { ascending: false });
+      const { data } = await supabase.from("loyalty_rewards").select("*").eq("customer_id", loyaltyCustomer!.id).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!loyaltyCustomer?.id,
@@ -143,7 +143,7 @@ export default function TrackOrder() {
   const nextThreshold = nextReward?.stamps || REWARD_THRESHOLDS[REWARD_THRESHOLDS.length - 1].stamps;
   const remaining = Math.max(0, nextThreshold - stampCount);
   const progressPercent = nextThreshold > 0 ? Math.min(100, (stampCount / nextThreshold) * 100) : 100;
-  const unclaimedRewards = loyaltyRewards?.filter(r => r.status === "unclaimed" && (!r.expires_at || new Date(r.expires_at) > new Date())) || [];
+  const unclaimedRewards = loyaltyRewards?.filter(r => r.status === "unclaimed" && !r.is_claimed && (!r.expires_at || new Date(r.expires_at) > new Date())) || [];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-lg">
