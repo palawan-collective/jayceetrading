@@ -26,6 +26,7 @@ import AdminCategories from "./components/admin/AdminCategories";
 import AdminUnits from "./components/admin/AdminUnits";
 import DynamicPage from "./pages/DynamicPage";
 import FAQ from "./pages/FAQ";
+import Invoice from "./pages/Invoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
