@@ -1,4 +1,4 @@
-import { ShoppingCart, Lock, Sun, Moon, Menu, X, UtensilsCrossed, Facebook, Instagram } from "lucide-react";
+import { ShoppingCart, Lock, Sun, Moon, Menu, X, UtensilsCrossed, Facebook, Instagram, User } from "lucide-react";
 import { useHeaderSettings, useBusinessSettings, useWebsitePages, useSocialLinks } from "@/hooks/use-settings";
 import { useTheme } from "@/lib/theme-provider";
 import { useCartStore } from "@/lib/cart-store";
@@ -40,7 +40,7 @@ export default function Header() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           <Link to="/" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">Order</Link>
-          <Link to="/track" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">Track Order</Link>
+          <Link to="/track" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors flex items-center gap-1"><User className="h-4 w-4" />My Account</Link>
           <Link to="/faq" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">FAQ</Link>
           {navPages.map(p => (
             <Link key={p.slug} to={`/${p.slug}`} className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">
@@ -95,7 +95,7 @@ export default function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card p-4 space-y-1">
           <Link to="/" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">Order</Link>
-          <Link to="/track" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">Track Order</Link>
+          <Link to="/track" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent flex items-center gap-1"><User className="h-4 w-4" />My Account</Link>
           <Link to="/faq" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">FAQ</Link>
           {navPages.map(p => (
             <Link key={p.slug} to={`/${p.slug}`} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">
