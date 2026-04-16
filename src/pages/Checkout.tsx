@@ -80,6 +80,22 @@ export default function Checkout() {
   const selectedPM = paymentMethods?.find(pm => pm.method_name === form.paymentMethod);
   const fullPhone = `${form.countryCode}${form.phone}`;
 
+  const validateRewardCode = async (code: string) => {
+    if (!code.trim()) { setRewardValidation({ status: "idle" }); return; }
+    setRewardValidation({ status: "checking" });
+    const { data } = await supabase.from("loyalty_rewards").select("*").eq("reward_code", code.trim().toUpperCase()).maybeSingle();
+    if (!data) { setRewardValidation({ status: "invalid" }); return; }
+    if (data.status === "claimed") { setRewardValidation({ status: "invalid" }); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setRewardValidation({ status: "expired" }); return; }
+    const dp = getDiscountPercent(data.reward_type || "");
+    setRewardValidation({ status: "valid", reward: data, discountPercent: dp });
+  };
+
+  const discountAmount = rewardValidation.status === "valid" && rewardValidation.discountPercent
+    ? getTotal() * (rewardValidation.discountPercent / 100) : 0;
+  const finalTotal = getTotal() - discountAmount;
+  const isFreeItem = rewardValidation.status === "valid" && rewardValidation.reward?.reward_type === "free_item";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return toast.error("Name is required");
