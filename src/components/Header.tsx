@@ -20,7 +20,7 @@ export default function Header() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy") || [];
+  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy" && p.slug !== "faq") || [];
   const enabledSocial = social?.filter(s => s.is_enabled) || [];
 
   return (
