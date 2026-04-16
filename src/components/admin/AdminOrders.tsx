@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink } from "lucide-react";
+import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
+import StampAwardModal from "./StampAwardModal";
 
 export default function AdminOrders() {
   const qc = useQueryClient();
@@ -15,6 +16,7 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [stampOrder, setStampOrder] = useState<any>(null);
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
