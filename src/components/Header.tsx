@@ -20,13 +20,13 @@ export default function Header() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy") || [];
+  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy" && p.slug !== "faq") || [];
   const enabledSocial = social?.filter(s => s.is_enabled) || [];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+      <div className="container mx-auto flex h-14 md:h-16 items-center justify-between px-4 gap-2">
+        <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => navigate("/")}>
           {header?.show_logo !== false && (
             business?.logo_url ? (
               <img src={business.logo_url} alt={business.business_name} className="h-8 w-8 rounded-full object-cover" />
@@ -34,7 +34,7 @@ export default function Header() {
               <UtensilsCrossed className="h-6 w-6 text-primary" />
             )
           )}
-          <span className="text-lg font-bold">{business?.business_name || "FoodOrder"}</span>
+          <span className="text-sm md:text-lg font-bold truncate max-w-[140px] md:max-w-none">{business?.business_name || "FoodOrder"}</span>
         </div>
 
         {/* Desktop nav */}
