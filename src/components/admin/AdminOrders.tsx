@@ -237,6 +237,11 @@ export default function AdminOrders() {
 
                 {/* Status Actions */}
                 <div className="flex flex-wrap gap-2">
+                  {o.order_status === "completed" && (
+                    <Button size="sm" variant="outline" className="gap-1 text-xs text-amber-600" onClick={() => setStampOrder(o)}>
+                      <Star className="h-3 w-3" /> Award Stamps
+                    </Button>
+                  )}
                   {o.order_status === "pending" && (
                     <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => updateStatus(o.id, "confirmed")}><CheckCircle className="h-3 w-3" /> Confirm</Button>
                   )}
@@ -263,6 +268,8 @@ export default function AdminOrders() {
         </Card>
       ))}
       {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No orders found</p>}
+
+      <StampAwardModal order={stampOrder} open={!!stampOrder} onClose={() => setStampOrder(null)} />
     </div>
   );
 }
