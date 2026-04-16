@@ -20,12 +20,18 @@ export type Database = {
           business_email: string
           business_name: string
           business_phone: string
+          confirmation_email_template: string
+          confirmation_whatsapp_template: string
           copyright_text: string
           currency_symbol: string
+          facebook_url: string | null
           favicon_url: string | null
           google_maps_url: string | null
           id: number
+          instagram_url: string | null
           logo_url: string | null
+          ready_email_template: string
+          ready_whatsapp_template: string
           whatsapp_business_number: string | null
         }
         Insert: {
@@ -33,12 +39,18 @@ export type Database = {
           business_email?: string
           business_name?: string
           business_phone?: string
+          confirmation_email_template?: string
+          confirmation_whatsapp_template?: string
           copyright_text?: string
           currency_symbol?: string
+          facebook_url?: string | null
           favicon_url?: string | null
           google_maps_url?: string | null
           id?: number
+          instagram_url?: string | null
           logo_url?: string | null
+          ready_email_template?: string
+          ready_whatsapp_template?: string
           whatsapp_business_number?: string | null
         }
         Update: {
@@ -46,12 +58,18 @@ export type Database = {
           business_email?: string
           business_name?: string
           business_phone?: string
+          confirmation_email_template?: string
+          confirmation_whatsapp_template?: string
           copyright_text?: string
           currency_symbol?: string
+          facebook_url?: string | null
           favicon_url?: string | null
           google_maps_url?: string | null
           id?: number
+          instagram_url?: string | null
           logo_url?: string | null
+          ready_email_template?: string
+          ready_whatsapp_template?: string
           whatsapp_business_number?: string | null
         }
         Relationships: []
@@ -221,57 +239,72 @@ export type Database = {
       orders: {
         Row: {
           completed_at: string | null
+          confirmed_at: string | null
           created_at: string
           customer_email: string | null
           customer_name: string
           customer_phone: string
           delivery_address: string | null
           delivery_type: string
+          email_confirmation_sent: boolean
+          email_ready_sent: boolean
           id: string
           items: Json
           order_status: string
           payment_method: string
           payment_status: string
           profit: number
+          ready_at: string | null
           subtotal: number
           total_price: number
-          whatsapp_sent: boolean
+          whatsapp_confirmation_sent: boolean
+          whatsapp_ready_sent: boolean
         }
         Insert: {
           completed_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name: string
           customer_phone: string
           delivery_address?: string | null
           delivery_type?: string
+          email_confirmation_sent?: boolean
+          email_ready_sent?: boolean
           id: string
           items?: Json
           order_status?: string
           payment_method?: string
           payment_status?: string
           profit?: number
+          ready_at?: string | null
           subtotal?: number
           total_price?: number
-          whatsapp_sent?: boolean
+          whatsapp_confirmation_sent?: boolean
+          whatsapp_ready_sent?: boolean
         }
         Update: {
           completed_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
           delivery_address?: string | null
           delivery_type?: string
+          email_confirmation_sent?: boolean
+          email_ready_sent?: boolean
           id?: string
           items?: Json
           order_status?: string
           payment_method?: string
           payment_status?: string
           profit?: number
+          ready_at?: string | null
           subtotal?: number
           total_price?: number
-          whatsapp_sent?: boolean
+          whatsapp_confirmation_sent?: boolean
+          whatsapp_ready_sent?: boolean
         }
         Relationships: []
       }
