@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,16 @@ export default function Checkout() {
   const currency = business?.currency_symbol || "₱";
 
   const [form, setForm] = useState({
-    name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "Cash",
+    name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "",
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Set default payment method when data loads
+  useEffect(() => {
+    if (paymentMethods?.length && !form.paymentMethod) {
+      setForm(f => ({ ...f, paymentMethod: paymentMethods[0].method_name }));
+    }
+  }, [paymentMethods]);
 
   const selectedPM = paymentMethods?.find(pm => pm.method_name === form.paymentMethod);
   const fullPhone = `${form.countryCode}${form.phone}`;
