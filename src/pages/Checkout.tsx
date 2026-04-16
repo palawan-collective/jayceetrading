@@ -140,6 +140,14 @@ export default function Checkout() {
       return;
     }
 
+    // Mark reward as claimed
+    if (rewardValidation.status === "valid" && rewardValidation.reward) {
+      await supabase.from("loyalty_rewards").update({
+        status: "claimed",
+        claimed_at: new Date().toISOString(),
+      }).eq("id", rewardValidation.reward.id);
+    }
+
     // Save customer profile to localStorage
     try {
       localStorage.setItem("jaycee_customer_profile", JSON.stringify({
@@ -266,8 +274,41 @@ export default function Checkout() {
           </CardContent>
         </Card>
 
+        {/* Reward Code */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" /> Have a reward code?</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              value={rewardCode}
+              onChange={e => setRewardCode(e.target.value)}
+              onBlur={() => validateRewardCode(rewardCode)}
+              placeholder="JAYCEE-XXXX-XXXX"
+              className="font-mono"
+            />
+            {rewardValidation.status === "checking" && <p className="text-xs text-muted-foreground">Checking code...</p>}
+            {rewardValidation.status === "valid" && (
+              <div className="flex items-center gap-2 text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4" />
+                {isFreeItem
+                  ? "Free item reward applied!"
+                  : `${rewardValidation.discountPercent}% discount applied — ${currency}${discountAmount.toFixed(2)} saved`}
+              </div>
+            )}
+            {rewardValidation.status === "invalid" && (
+              <div className="flex items-center gap-2 text-destructive text-sm">
+                <XCircle className="h-4 w-4" /> Code not found or already used
+              </div>
+            )}
+            {rewardValidation.status === "expired" && (
+              <div className="flex items-center gap-2 text-amber-600 text-sm">
+                <AlertTriangle className="h-4 w-4" /> This reward has expired
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-          {submitting ? "Placing Order..." : `Place Order — ${currency}${getTotal().toFixed(2)}`}
+          {submitting ? "Placing Order..." : `Place Order — ${currency}${(isFreeItem ? getTotal() : finalTotal).toFixed(2)}`}
         </Button>
       </form>
     </div>
