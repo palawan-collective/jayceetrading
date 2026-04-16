@@ -1,57 +1,50 @@
 
 
-# Food Ordering Web Application — Implementation Plan
+## Plan: Fix Build Errors and Complete Admin Features
 
-## Overview
-A full-featured food ordering web app with a customer-facing storefront, dynamic pages, and a powerful admin panel. Built with React + Supabase backend, dark mode by default, mobile-first design.
+### Problem
+The `AdminCategories` component references a `categories` table that doesn't exist in the database, causing TypeScript errors. The `AdminLayout` and routes are already partially set up but missing Categories and Units routes.
 
-## Phase 1: Database & Foundation
-- Create all 14 Supabase tables with proper schemas, defaults, and RLS policies
-- Seed business_settings, header_settings, footer_settings, payment_methods, and social_media_links with sensible defaults
-- Set up dark mode as default with theme toggle (dark bg: #0f172a, light: #f8fafc)
-- Configure modern fonts (Inter/Plus Jakarta Sans) and base layout
+### Steps
 
-## Phase 2: Customer Storefront — Order Page
-- Product grid (1/2/3 columns responsive) with category filters
-- Special badges, countdown timers, special vs regular pricing
-- Shopping cart (sidebar/drawer) with quantity controls
-- Checkout flow: name, phone (country code), email, delivery/pickup, address, payment method selection
-- QR code display for GCash/PHQR payments
-- Order placement: save to DB, reduce inventory, calculate profit
+**1. Create database tables via migration**
+- `categories` table: `id` (serial PK), `name` (text, unique, not null), `created_at` (timestamptz, default now())
+- `units` table: `id` (serial PK), `value` (text, unique, not null), `label` (text, not null), `example` (text), `created_at` (timestamptz, default now())
+- Add a foreign key from `products.category` to `categories.name` (or keep as text and just use dropdown — safer given existing data)
+- RLS: public read/insert/update/delete for both tables (matching existing pattern)
+- Add foreign key relationship: `products.category` references `categories.name` and `products.unit` references `units.value` so Supabase joins work
 
-## Phase 3: Dynamic Pages
-- Route system for: About, Services, Specials, Blog, FAQ, Catering, Contact, Testimonials, Privacy Policy
-- Each page renders content from `website_pages` and `content_sections` tables
-- Contact form saves to `contact_form_submissions`
-- Newsletter signup saves to `newsletter_subscribers`
-- Testimonials page shows approved reviews with star ratings
-- Specials page with active/upcoming specials
+**2. Create storage bucket `product-images`**
+- Public bucket for product image uploads
 
-## Phase 4: Header & Footer
-- Configurable header: logo, nav links (show/hide per admin), theme toggle, cart icon, admin icon
-- Configurable footer: social icons, contact info, newsletter signup, copyright, quick links, Google Maps link
-- Colors driven by header_settings/footer_settings tables
+**3. Seed data via insert tool**
+- Categories: Sausages, Meats, Seafood, Fries, Butter, Syrup, Baking, Pampanga's Best, Dairy
+- Units: kg/Kilogram/Meats Seafood, g/Gram/Spices, pack/Package/Sausages, bot/Bottle/Syrup, ltr/Liter/Milk, case/Case/Bulk orders
 
-## Phase 5: Admin Panel (passkey: 5309)
-- **Analytics Dashboard** — date range filters, KPIs (sales, profit margin, AOV, order count), charts, top products, low-margin alerts, inventory alerts, payment/delivery breakdowns, hourly heatmap
-- **Products** — CRUD, special toggle, inventory adjust, profit margin display, CSV export/import
-- **Specials Management** — create/edit specials (daily/weekly/holiday/flash), date ranges, product selection, discount %
-- **Orders** — list with filters, status updates, WhatsApp send button
-- **Inventory** — stock levels, low stock report, bulk restock
-- **Payment Methods** — enable/disable, QR code URLs
-- **Profit & Loss** — P&L statement, revenue by category, CSV export
-- **Page Builder** — enable/disable pages, reorder, edit content sections (hero, features, gallery, testimonials, contact form, map, newsletter, text, CTA)
-- **Testimonials** — approve/reject/edit/delete reviews
-- **Newsletter** — view/export subscribers
-- **Contact Submissions** — view messages, mark read
-- **Header & Footer Settings** — toggle elements, set colors, manage social links
-- **General Settings** — business info, WhatsApp number, logo, favicon, currency, copyright
+**4. Create `AdminUnits` component** (`src/components/admin/AdminUnits.tsx`)
+- CRUD for units table with value, label, example fields
+- Same card-based list pattern as AdminCategories
 
-## Technical Approach
-- All data in Supabase (no localStorage for business data)
-- React Query for data fetching/caching
-- Lucide React icons throughout
-- Mobile-first with Tailwind responsive classes
-- Dark/light mode with consistent typography
-- WhatsApp integration via `wa.me` links using customer phone from order
+**5. Fix `AdminCategories` component**
+- Already exists but needs to work with the new table. The current code should work once the `categories` table exists and types regenerate. Add `products(count)` relationship query.
+
+**6. Update `AdminProducts` component**
+- Replace category text input with a dropdown populated from `categories` table
+- Replace unit text input with a dropdown populated from `units` table
+- Replace image URL input with file upload to `product-images` storage bucket
+- Keep availability toggle (already exists)
+
+**7. Update `AdminLayout`**
+- Add Categories and Units nav items to the `allNavItems` array
+
+**8. Update `App.tsx`**
+- Add routes for `/admin/categories` and `/admin/units` wrapped in AdminLayout
+
+**9. Copy uploaded logo**
+- Copy `jaycee_trading_logo.jpg` to `public/images/` for potential use
+
+### Technical Notes
+- The `products` table currently has `category` as plain text. We'll keep it as text but populate the dropdown from the `categories` table (no FK constraint to avoid migration complexity with existing data).
+- Storage bucket creation will be done via migration.
+- The PDF price list will be parsed to check if product data should be seeded from it.
 
