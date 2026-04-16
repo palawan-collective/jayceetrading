@@ -85,7 +85,7 @@ export default function Checkout() {
     setRewardValidation({ status: "checking" });
     const { data } = await supabase.from("loyalty_rewards").select("*").eq("reward_code", code.trim().toUpperCase()).maybeSingle();
     if (!data) { setRewardValidation({ status: "invalid" }); return; }
-    if (data.status === "claimed") { setRewardValidation({ status: "invalid" }); return; }
+    if (data.is_claimed) { setRewardValidation({ status: "invalid" }); return; }
     if (data.expires_at && new Date(data.expires_at) < new Date()) { setRewardValidation({ status: "expired" }); return; }
     const dp = getDiscountPercent(data.reward_type || "");
     setRewardValidation({ status: "valid", reward: data, discountPercent: dp });
@@ -143,6 +143,7 @@ export default function Checkout() {
     // Mark reward as claimed
     if (rewardValidation.status === "valid" && rewardValidation.reward) {
       await supabase.from("loyalty_rewards").update({
+        is_claimed: true,
         status: "claimed",
         claimed_at: new Date().toISOString(),
       }).eq("id", rewardValidation.reward.id);

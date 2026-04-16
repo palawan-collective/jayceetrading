@@ -290,43 +290,47 @@ export type Database = {
       loyalty_rewards: {
         Row: {
           claimed_at: string | null
+          created_at: string | null
           customer_id: string | null
+          customer_phone: string
+          discount_amount: number | null
           earned_at: string | null
           expires_at: string | null
           id: string
-          reward_code: string | null
+          is_claimed: boolean | null
+          reward_code: string
           reward_type: string | null
           status: string | null
         }
         Insert: {
           claimed_at?: string | null
+          created_at?: string | null
           customer_id?: string | null
+          customer_phone: string
+          discount_amount?: number | null
           earned_at?: string | null
           expires_at?: string | null
           id?: string
-          reward_code?: string | null
+          is_claimed?: boolean | null
+          reward_code: string
           reward_type?: string | null
           status?: string | null
         }
         Update: {
           claimed_at?: string | null
+          created_at?: string | null
           customer_id?: string | null
+          customer_phone?: string
+          discount_amount?: number | null
           earned_at?: string | null
           expires_at?: string | null
           id?: string
-          reward_code?: string | null
+          is_claimed?: boolean | null
+          reward_code?: string
           reward_type?: string | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "loyalty_rewards_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "loyalty_customers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       loyalty_stamp_log: {
         Row: {
@@ -362,6 +366,38 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "loyalty_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_stamps: {
+        Row: {
+          created_at: string | null
+          customer_phone: string
+          id: string
+          order_id: string
+          stamps_awarded: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_phone: string
+          id?: string
+          order_id: string
+          stamps_awarded?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_phone?: string
+          id?: string
+          order_id?: string
+          stamps_awarded?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_stamps_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]

@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Star, Gift, MessageCircle } from "lucide-react";
 import {
-  calculateStamps, getTier, getEarnedReward, generateRewardCode,
+  calculateStamps, getTier, getEarnedReward, generateRewardCode, getDiscountPercent,
   REWARD_THRESHOLDS, TIER_COLORS,
 } from "@/lib/loyalty-utils";
 
@@ -100,9 +100,12 @@ export default function StampAwardModal({ order, open, onClose }: Props) {
 
         await supabase.from("loyalty_rewards").insert({
           customer_id: customerId,
+          customer_phone: customerPhone,
           reward_type: earnedReward.type,
           reward_code: rewardCode,
           status: "unclaimed",
+          is_claimed: false,
+          discount_amount: getDiscountPercent(earnedReward.type),
           earned_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         });
