@@ -95,7 +95,7 @@ export default function Checkout() {
 
     clearCart();
     toast.success(`Order ${orderId} placed!`);
-    navigate("/");
+    navigate(`/invoice/${orderId}`);
     setSubmitting(false);
   };
 
