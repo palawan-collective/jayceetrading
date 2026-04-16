@@ -95,6 +95,7 @@ export default function TrackOrder() {
           <span>Time: {new Date(order.created_at).toLocaleTimeString()}</span>
           <span className="capitalize">Delivery: {order.delivery_type}</span>
           <span className="capitalize">Payment: {order.payment_method}</span>
+        </div>
         {/* Bill To */}
         <div className="border-t border-border pt-2">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Bill To</p>
