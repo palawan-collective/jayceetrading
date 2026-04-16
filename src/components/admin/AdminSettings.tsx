@@ -18,6 +18,7 @@ export default function AdminSettings() {
   const gcashQrRef = useRef<HTMLInputElement>(null);
   const phqrQrRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { items: navItems, toggleItem } = useNavVisibility();
 
   const { data: settings } = useQuery({
     queryKey: ["business-settings"],
