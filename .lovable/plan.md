@@ -1,85 +1,74 @@
 
 
-## Plan: Add Missing Features to Food Ordering App
+## Plan: Add Invoice Payment Features
 
-This is a large set of enhancements across 6 areas. I'll implement them incrementally, keeping all existing functionality intact.
-
----
-
-### 1. Specials Image Upload + Form Fix
-
-**AdminSpecials.tsx** — Complete overhaul of the form dialog:
-- Add file input for image upload to a new `specials` storage bucket
-- Add image preview in the form and in the card list
-- Add missing fields: start date, end date, product selector (multi-select from products table), active toggle
-- The `specials` table already has all needed columns (`start_date`, `end_date`, `products_included`, `is_active`, `image_url`)
-
-**Database**: Create `specials` storage bucket (public) via migration.
-
-### 2. Payment Methods QR Upload
-
-**AdminPayments.tsx** — Replace the QR Code URL text input with a file upload button that uploads to `product-images` bucket. Show QR preview.
-
-**Checkout.tsx** — Already has payment method selector and QR display. No changes needed (it already works with `qr_code_url` from payment_methods table).
-
-### 3. Email Order Confirmation
-
-Skip full Lovable Email infrastructure for this use case. Instead, use a simple approach:
-- The existing WhatsApp template system already works. For email, add **mailto: link buttons** in AdminOrders (similar to WhatsApp buttons) that open the user's email client with pre-filled subject/body using the templates from `business_settings`.
-- Add "Email Confirm" and "Email Ready" buttons to AdminOrders that use `mailto:` links with the customer's email, pre-filled with template content.
-- Track `email_confirmation_sent` and `email_ready_sent` flags (columns already exist).
-
-This avoids needing edge functions or email domain setup for a simple admin notification workflow.
-
-### 4. Dynamic Pages Admin
-
-**AdminPages.tsx** — Enhance to:
-- Add/edit page content (title, slug, basic text content via textarea)
-- Reorder pages with up/down buttons
-- Add new pages
-- Delete non-essential pages
-- Content stored in existing `content` jsonb column and `content_sections` table
-
-### 5. Full Analytics Dashboard
-
-**AdminDashboard.tsx** — Major expansion using recharts (already installed):
-
-**New sections with interactive charts:**
-- Gross Profit Margin % card
-- Revenue by Category (BarChart)
-- Revenue by Payment Method (PieChart)
-- Average Order Value trend
-- Worst selling products (bottom 5)
-- Product Profitability table (name, units sold, revenue, cost, profit, margin %)
-- Customer analytics: unique customers, top 10 by spend, repeat rate
-- Inventory analytics: stock value, low stock, out of stock, days remaining, restock suggestions
-- Time analytics: orders by hour (bar chart), orders by day of week, orders by month
-- Order funnel (pending→confirmed→ready→completed), cancellation rate
-- Specials performance section
-- CSV export buttons on each section
-- All charts responsive with tooltips, all update with date range
-
-### 6. No Database Schema Changes Needed
-
-All required columns and tables already exist. Only need:
-- Create `specials` storage bucket
+### What We're Building
+- A public invoice page customers can view (`/invoice/:orderId`)
+- Payment QR codes and bank details on pending invoices
+- "Mark Paid / Unpaid" buttons in admin Orders
+- Invoice payment settings in admin Settings
+- A new `payment_settings` table for QR images and bank info
 
 ---
 
-### Files to Create/Modify
+### Database Changes (Migration)
 
-| File | Action |
-|------|--------|
-| `supabase/migrations/...sql` | Create `specials` storage bucket |
-| `src/components/admin/AdminSpecials.tsx` | Add image upload, dates, product selector, active toggle |
-| `src/components/admin/AdminPayments.tsx` | Add QR image upload from device |
-| `src/components/admin/AdminOrders.tsx` | Add email confirmation/ready buttons |
-| `src/components/admin/AdminPages.tsx` | Add content editing, reorder, add/delete pages |
-| `src/components/admin/AdminDashboard.tsx` | Full analytics suite with recharts charts |
+**1. Add columns to `orders` table:**
+- `paid_at` (timestamptz, nullable)
+- `paid_via` (text, nullable)
 
-### Technical Notes
-- Recharts is already installed — will use BarChart, PieChart, LineChart, ResponsiveContainer
-- CSV export via client-side Blob download
-- All charts mobile-responsive via ResponsiveContainer
-- No horizontal scrolling — all tables use card-based stacked layouts on mobile
+**2. Create `payment_settings` table:**
+- `id` (integer, PK, default 1)
+- `show_gcash_on_invoice` (boolean, default true)
+- `show_phqr_on_invoice` (boolean, default true)
+- `show_bank_on_invoice` (boolean, default true)
+- `gcash_qr_url` (text, nullable)
+- `phqr_qr_url` (text, nullable)
+- `bank_name` (text, nullable)
+- `bank_account_name` (text, nullable)
+- `bank_account_number` (text, nullable)
+- `bank_branch` (text, nullable)
+- `invoice_layout` (text, default 'show_all') -- 'show_all' or 'show_selected'
+- Public read RLS, anon/authenticated insert/update
+
+**3. Seed one default row** in `payment_settings`.
+
+---
+
+### New Files
+
+**`src/pages/Invoice.tsx`** — Public invoice page at `/invoice/:orderId`
+- Fetches order + payment_settings + business_settings
+- **Pending**: Shows yellow "PENDING PAYMENT" badge, QR codes (GCash/PHQR images), bank transfer details, payment instructions
+- **Paid**: Shows green "PAID" badge with red border box, payment method used, timestamp, hides QR/bank details, shows checkmark
+- Mobile-first stacked layout, printable
+
+---
+
+### Modified Files
+
+**`src/components/admin/AdminSettings.tsx`**
+- Add "Invoice Payment Settings" card section:
+  - Toggle checkboxes for GCash/PHQR/Bank on invoice
+  - File upload for GCash QR and PHQR QR images (to `logos` bucket)
+  - Bank details inputs (name, account name, number, branch)
+  - Layout radio: "Show all" vs "Show only order's payment method"
+
+**`src/components/admin/AdminOrders.tsx`**
+- Add "Mark Paid" button (sets `payment_status=paid`, `paid_at=now()`, `paid_via=payment_method`)
+- Add "Mark Unpaid" button (reverts to pending, clears `paid_at`/`paid_via`)
+- Show payment status badge (yellow pending / green paid)
+- Add "View Invoice" link that opens `/invoice/:id` in new tab
+- Add "Send Paid Invoice" WhatsApp/email button after marking paid
+
+**`src/App.tsx`**
+- Add route: `/invoice/:orderId` → `Invoice` page
+
+---
+
+### Technical Details
+- QR images uploaded to existing `logos` bucket (reuse, no new bucket needed)
+- Invoice page is public (no auth), fetches by order ID
+- CSV/PDF export not included (no invoice PDF generation — just a viewable web page)
+- All existing functionality untouched
 
