@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Star, Gift, MessageCircle } from "lucide-react";
 import {
-  calculateStamps, getTier, getEarnedReward, generateRewardCode,
+  calculateStamps, getTier, getEarnedReward, generateRewardCode, getDiscountPercent,
   REWARD_THRESHOLDS, TIER_COLORS,
 } from "@/lib/loyalty-utils";
 
