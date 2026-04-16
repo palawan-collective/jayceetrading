@@ -3,12 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { Upload } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export default function AdminSettings() {
   const qc = useQueryClient();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const { data: settings } = useQuery({
     queryKey: ["business-settings"],
     queryFn: async () => {
@@ -21,6 +26,20 @@ export default function AdminSettings() {
   const [form, setForm] = useState<any>({});
   useEffect(() => { if (settings) setForm(settings); }, [settings]);
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const fileName = `logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+    if (error) { toast.error("Upload failed"); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+    setForm((f: any) => ({ ...f, logo_url: urlData.publicUrl }));
+    setUploading(false);
+    toast.success("Logo uploaded");
+  };
+
   const handleSave = async () => {
     const { id, ...rest } = form;
     const { error } = await supabase.from("business_settings").update(rest).eq("id", 1);
@@ -29,21 +48,77 @@ export default function AdminSettings() {
     qc.invalidateQueries({ queryKey: ["business-settings"] });
   };
 
+  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((f: any) => ({ ...f, [key]: e.target.value }));
+
   return (
-    <Card>
-      <CardHeader><CardTitle>General Settings</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div><Label>Business Name</Label><Input value={form.business_name || ""} onChange={e => setForm((f: any) => ({ ...f, business_name: e.target.value }))} /></div>
-        <div><Label>Phone</Label><Input value={form.business_phone || ""} onChange={e => setForm((f: any) => ({ ...f, business_phone: e.target.value }))} /></div>
-        <div><Label>Email</Label><Input value={form.business_email || ""} onChange={e => setForm((f: any) => ({ ...f, business_email: e.target.value }))} /></div>
-        <div><Label>Address</Label><Input value={form.business_address || ""} onChange={e => setForm((f: any) => ({ ...f, business_address: e.target.value }))} /></div>
-        <div><Label>Google Maps URL</Label><Input value={form.google_maps_url || ""} onChange={e => setForm((f: any) => ({ ...f, google_maps_url: e.target.value }))} /></div>
-        <div><Label>WhatsApp Number</Label><Input value={form.whatsapp_business_number || ""} onChange={e => setForm((f: any) => ({ ...f, whatsapp_business_number: e.target.value }))} /></div>
-        <div><Label>Currency Symbol</Label><Input value={form.currency_symbol || "₱"} onChange={e => setForm((f: any) => ({ ...f, currency_symbol: e.target.value }))} /></div>
-        <div><Label>Copyright Text</Label><Input value={form.copyright_text || ""} onChange={e => setForm((f: any) => ({ ...f, copyright_text: e.target.value }))} /></div>
-        <div><Label>Logo URL</Label><Input value={form.logo_url || ""} onChange={e => setForm((f: any) => ({ ...f, logo_url: e.target.value }))} /></div>
-        <Button onClick={handleSave}>Save Settings</Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader><CardTitle>Business Info</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Business Name</Label><Input value={form.business_name || ""} onChange={set("business_name")} /></div>
+          <div><Label>Phone</Label><Input value={form.business_phone || ""} onChange={set("business_phone")} /></div>
+          <div><Label>Email</Label><Input value={form.business_email || ""} onChange={set("business_email")} /></div>
+          <div><Label>Address</Label><Input value={form.business_address || ""} onChange={set("business_address")} /></div>
+          <div><Label>Currency Symbol</Label><Input value={form.currency_symbol || "₱"} onChange={set("currency_symbol")} /></div>
+          <div><Label>Copyright Text</Label><Input value={form.copyright_text || ""} onChange={set("copyright_text")} /></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Logo</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <input type="file" ref={logoInputRef} accept="image/*" onChange={handleLogoUpload} className="hidden" />
+          <div className="flex items-center gap-4">
+            {form.logo_url && <img src={form.logo_url} alt="Logo" className="w-16 h-16 rounded object-cover" />}
+            <Button variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploading} className="gap-2">
+              <Upload className="h-4 w-4" /> {uploading ? "Uploading..." : "Upload Logo"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Social Links</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Facebook URL</Label><Input value={form.facebook_url || ""} onChange={set("facebook_url")} placeholder="https://facebook.com/..." /></div>
+          <div><Label>Instagram URL</Label><Input value={form.instagram_url || ""} onChange={set("instagram_url")} placeholder="https://instagram.com/..." /></div>
+          <div><Label>WhatsApp Business Number</Label><Input value={form.whatsapp_business_number || ""} onChange={set("whatsapp_business_number")} placeholder="+63 XXX XXX XXXX" /></div>
+          <div><Label>Google Maps URL</Label><Input value={form.google_maps_url || ""} onChange={set("google_maps_url")} /></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>WhatsApp Message Templates</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Available variables: {"{name}"}, {"{id}"}, {"{total}"}, {"{delivery_type}"}, {"{address}"}</p>
+          <div>
+            <Label>Confirmation Message</Label>
+            <Textarea value={form.confirmation_whatsapp_template || ""} onChange={set("confirmation_whatsapp_template")} rows={3} />
+          </div>
+          <div>
+            <Label>Ready Message</Label>
+            <Textarea value={form.ready_whatsapp_template || ""} onChange={set("ready_whatsapp_template")} rows={3} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Email Templates</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Available variables: {"{name}"}, {"{id}"}, {"{total}"}, {"{delivery_type}"}, {"{address}"}</p>
+          <div>
+            <Label>Confirmation Email</Label>
+            <Textarea value={form.confirmation_email_template || ""} onChange={set("confirmation_email_template")} rows={3} />
+          </div>
+          <div>
+            <Label>Ready Email</Label>
+            <Textarea value={form.ready_email_template || ""} onChange={set("ready_email_template")} rows={3} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button onClick={handleSave} size="lg" className="w-full">Save All Settings</Button>
+    </div>
   );
 }

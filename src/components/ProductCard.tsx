@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Plus, Sparkles, UtensilsCrossed, AlertTriangle } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { useBusinessSettings } from "@/hooks/use-settings";
 import type { Tables } from "@/integrations/supabase/types";
@@ -17,6 +17,7 @@ export default function ProductCard({ product }: Props) {
 
   const effectivePrice = product.is_special && product.special_price ? product.special_price : product.price;
   const outOfStock = product.inventory <= 0 || !product.is_available;
+  const lowStock = product.inventory > 0 && product.inventory <= product.inventory_min_threshold;
 
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -31,6 +32,11 @@ export default function ProductCard({ product }: Props) {
         {product.is_special && (
           <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground gap-1">
             <Sparkles className="h-3 w-3" /> Special
+          </Badge>
+        )}
+        {lowStock && !outOfStock && (
+          <Badge className="absolute top-2 right-2 bg-yellow-500/90 text-white gap-1">
+            <AlertTriangle className="h-3 w-3" /> Low Stock
           </Badge>
         )}
         {outOfStock && (
@@ -48,11 +54,11 @@ export default function ProductCard({ product }: Props) {
           <div className="text-right shrink-0">
             {product.is_special && product.special_price ? (
               <>
-                <p className="text-lg font-bold text-primary">{currency}{product.special_price}</p>
-                <p className="text-xs text-muted-foreground line-through">{currency}{product.price}</p>
+                <p className="text-lg font-bold text-primary">{currency}{Number(product.special_price).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground line-through">{currency}{Number(product.price).toFixed(2)}</p>
               </>
             ) : (
-              <p className="text-lg font-bold">{currency}{product.price}</p>
+              <p className="text-lg font-bold">{currency}{Number(product.price).toFixed(2)}</p>
             )}
           </div>
         </div>
@@ -63,8 +69,8 @@ export default function ProductCard({ product }: Props) {
           onClick={() => addItem({
             id: product.id,
             name: product.name,
-            price: effectivePrice,
-            cost: product.cost_of_goods,
+            price: Number(effectivePrice),
+            cost: Number(product.cost_of_goods),
             unit: product.unit,
             image_url: product.image_url,
           })}

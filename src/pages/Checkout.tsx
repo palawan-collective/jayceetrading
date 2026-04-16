@@ -11,6 +11,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, QrCode } from "lucide-react";
 
+const COUNTRY_CODES = [
+  { code: "+63", country: "PH" },
+  { code: "+1", country: "US" },
+  { code: "+44", country: "UK" },
+  { code: "+61", country: "AU" },
+  { code: "+81", country: "JP" },
+  { code: "+82", country: "KR" },
+  { code: "+65", country: "SG" },
+  { code: "+60", country: "MY" },
+  { code: "+66", country: "TH" },
+  { code: "+84", country: "VN" },
+  { code: "+91", country: "IN" },
+  { code: "+86", country: "CN" },
+  { code: "+971", country: "AE" },
+  { code: "+49", country: "DE" },
+  { code: "+33", country: "FR" },
+];
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, getTotal, clearCart } = useCartStore();
@@ -19,16 +37,18 @@ export default function Checkout() {
   const currency = business?.currency_symbol || "₱";
 
   const [form, setForm] = useState({
-    name: "", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "Cash",
+    name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "Cash",
   });
   const [submitting, setSubmitting] = useState(false);
 
   const selectedPM = paymentMethods?.find(pm => pm.method_name === form.paymentMethod);
+  const fullPhone = `${form.countryCode}${form.phone}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.phone) return toast.error("Name and phone are required");
-    if (form.deliveryType === "delivery" && !form.address) return toast.error("Address required for delivery");
+    if (!form.name.trim()) return toast.error("Name is required");
+    if (!form.phone.trim()) return toast.error("Phone is required");
+    if (form.deliveryType === "delivery" && !form.address.trim()) return toast.error("Address required for delivery");
     if (items.length === 0) return toast.error("Cart is empty");
 
     setSubmitting(true);
@@ -38,8 +58,6 @@ export default function Checkout() {
 
     // Reduce inventory
     for (const item of items) {
-      await supabase.from("products").update({ inventory: undefined as any }).eq("id", item.id);
-      // Use RPC or direct update
       const { data: prod } = await supabase.from("products").select("inventory").eq("id", item.id).single();
       if (prod) {
         await supabase.from("products").update({ inventory: Math.max(0, prod.inventory - item.quantity) }).eq("id", item.id);
@@ -48,11 +66,11 @@ export default function Checkout() {
 
     const { error } = await supabase.from("orders").insert({
       id: orderId,
-      customer_name: form.name,
-      customer_phone: form.phone,
-      customer_email: form.email || null,
+      customer_name: form.name.trim(),
+      customer_phone: fullPhone,
+      customer_email: form.email.trim() || null,
       delivery_type: form.deliveryType,
-      delivery_address: form.deliveryType === "delivery" ? form.address : null,
+      delivery_address: form.deliveryType === "delivery" ? form.address.trim() : null,
       items: items.map(i => ({ id: i.id, name: i.name, price: i.price, cost: i.cost, quantity: i.quantity, unit: i.unit })),
       subtotal,
       total_price: subtotal,
@@ -110,8 +128,21 @@ export default function Checkout() {
           <CardHeader><CardTitle>Your Details</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></div>
-            <div><Label>Phone *</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+63 9XX XXX XXXX" /></div>
-            <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Optional" /></div>
+            <div>
+              <Label>Phone *</Label>
+              <div className="flex gap-2">
+                <Select value={form.countryCode} onValueChange={v => setForm(f => ({ ...f, countryCode: v }))}>
+                  <SelectTrigger className="w-24 shrink-0"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_CODES.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.code} {c.country}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="9XX XXX XXXX" className="flex-1" />
+              </div>
+            </div>
+            <div><Label>Email (optional)</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="For order updates" /></div>
           </CardContent>
         </Card>
 
