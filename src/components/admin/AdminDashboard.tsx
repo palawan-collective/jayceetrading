@@ -105,10 +105,16 @@ export default function AdminDashboard() {
   const completed = filteredOrders.filter(o => o.order_status !== "cancelled");
   const totalSales = completed.reduce((s, o) => s + Number(o.total_price), 0);
 
-  // Build product cost map for accurate cost lookups
+  // Build product lookup maps for accurate cost and category lookups
   const productCostMap = useMemo(() => {
     const map: Record<string, number> = {};
     if (products) products.forEach(p => { map[p.name] = Number(p.cost_of_goods); });
+    return map;
+  }, [products]);
+
+  const productCategoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (products) products.forEach(p => { map[p.name] = p.category || "Other"; });
     return map;
   }, [products]);
 
