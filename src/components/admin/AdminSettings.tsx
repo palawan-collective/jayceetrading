@@ -66,8 +66,8 @@ export default function AdminSettings() {
     const { error } = await supabase.storage.from("logos").upload(fileName, file, { upsert: true });
     if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(fileName);
-    const updatePayload = field === "gcash_qr_url" 
-      ? { gcash_qr_url: urlData.publicUrl } 
+    const updatePayload = field === "gcash_qr_url"
+      ? { gcash_qr_url: urlData.publicUrl }
       : { phqr_qr_url: urlData.publicUrl };
     await supabase.from("payment_settings").update(updatePayload).eq("id", 1);
     setPsForm((f: any) => ({ ...f, [field]: urlData.publicUrl }));
@@ -174,18 +174,18 @@ export default function AdminSettings() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Show on Invoice</Label>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={psForm.show_gcash_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_gcash_on_invoice: !!v }))} />
-              <span className="text-sm">GCash QR Code</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={psForm.show_phqr_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_phqr_on_invoice: !!v }))} />
-              <span className="text-sm">PHQR QR Code</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={psForm.show_bank_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_bank_on_invoice: !!v }))} />
-              <span className="text-sm">Bank Transfer Details</span>
-            </div>
+            {[
+              { key: "show_gcash_on_invoice", label: "GCash QR Code" },
+              { key: "show_phqr_on_invoice", label: "PHQR QR Code" },
+              { key: "show_bank_on_invoice", label: "Bank Transfer Details" },
+              { key: "show_cod_on_invoice", label: "Cash on Delivery Instructions" },
+              { key: "show_cop_on_invoice", label: "Cash on Pickup Instructions" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-2">
+                <Checkbox checked={psForm[key] ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, [key]: !!v }))} />
+                <span className="text-sm">{label}</span>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-2">
@@ -228,6 +228,12 @@ export default function AdminSettings() {
             <div><Label>Account Name</Label><Input value={psForm.bank_account_name || ""} onChange={setPs("bank_account_name")} /></div>
             <div><Label>Account Number</Label><Input value={psForm.bank_account_number || ""} onChange={setPs("bank_account_number")} /></div>
             <div><Label>Branch (optional)</Label><Input value={psForm.bank_branch || ""} onChange={setPs("bank_branch")} /></div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Cash Instructions</Label>
+            <div><Label>Cash on Delivery Instructions</Label><Input value={psForm.cod_instructions || ""} onChange={setPs("cod_instructions")} /></div>
+            <div><Label>Cash on Pickup Instructions</Label><Input value={psForm.cop_instructions || ""} onChange={setPs("cop_instructions")} /></div>
           </div>
 
           <Button onClick={handleSavePaymentSettings} className="w-full">Save Payment Settings</Button>
