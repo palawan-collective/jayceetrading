@@ -41,6 +41,13 @@ export default function Checkout() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Set default payment method when data loads
+  useEffect(() => {
+    if (paymentMethods?.length && !form.paymentMethod) {
+      setForm(f => ({ ...f, paymentMethod: paymentMethods[0].method_name }));
+    }
+  }, [paymentMethods]);
+
   const selectedPM = paymentMethods?.find(pm => pm.method_name === form.paymentMethod);
   const fullPhone = `${form.countryCode}${form.phone}`;
 
