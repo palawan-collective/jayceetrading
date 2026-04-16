@@ -70,8 +70,8 @@ export default function AdminOrders() {
       : (settings?.ready_whatsapp_template || "Hello {name}, your order #{id} is READY for {delivery_type}.");
     const msg = encodeURIComponent(fillTemplate(template, order));
     window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-    const col = type === "confirm" ? "whatsapp_confirmation_sent" : "whatsapp_ready_sent";
-    supabase.from("orders").update({ [col]: true }).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+    const updateData = type === "confirm" ? { whatsapp_confirmation_sent: true } : { whatsapp_ready_sent: true };
+    supabase.from("orders").update(updateData).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
   };
 
   const sendEmail = (order: any, type: "confirm" | "ready") => {
@@ -81,8 +81,8 @@ export default function AdminOrders() {
     const subject = type === "confirm" ? `Order ${order.id} Confirmed` : `Order ${order.id} Ready`;
     const body = encodeURIComponent(fillTemplate(template, order));
     window.open(`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${body}`, "_blank");
-    const col = type === "confirm" ? "email_confirmation_sent" : "email_ready_sent";
-    supabase.from("orders").update({ [col]: true }).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+    const emailUpdate = type === "confirm" ? { email_confirmation_sent: true } : { email_ready_sent: true };
+    supabase.from("orders").update(emailUpdate).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
   };
 
   const statusColor = (s: string) => {
