@@ -208,9 +208,15 @@ export default function Checkout() {
                 <span>{currency}{(i.price * i.quantity).toFixed(2)}</span>
               </div>
             ))}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Reward discount ({rewardValidation.discountPercent}%)</span>
+                <span>-{currency}{discountAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>Total</span>
-              <span>{currency}{getTotal().toFixed(2)}</span>
+              <span>{currency}{(isFreeItem ? getTotal() : finalTotal).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
