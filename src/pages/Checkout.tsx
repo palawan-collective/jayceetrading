@@ -43,6 +43,12 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [savedName, setSavedName] = useState("");
+  const [rewardCode, setRewardCode] = useState("");
+  const [rewardValidation, setRewardValidation] = useState<{
+    status: "idle" | "valid" | "invalid" | "expired" | "checking";
+    reward?: any;
+    discountPercent?: number;
+  }>({ status: "idle" });
 
   // Restore saved customer profile
   useEffect(() => {
