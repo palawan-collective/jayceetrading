@@ -281,6 +281,8 @@ export type Database = {
           id: string
           items: Json
           order_status: string
+          paid_at: string | null
+          paid_via: string | null
           payment_method: string
           payment_status: string
           profit: number
@@ -304,6 +306,8 @@ export type Database = {
           id: string
           items?: Json
           order_status?: string
+          paid_at?: string | null
+          paid_via?: string | null
           payment_method?: string
           payment_status?: string
           profit?: number
@@ -327,6 +331,8 @@ export type Database = {
           id?: string
           items?: Json
           order_status?: string
+          paid_at?: string | null
+          paid_via?: string | null
           payment_method?: string
           payment_status?: string
           profit?: number
@@ -359,6 +365,48 @@ export type Database = {
           is_enabled?: boolean
           method_name?: string
           qr_code_url?: string | null
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          gcash_qr_url: string | null
+          id: number
+          invoice_layout: string
+          phqr_qr_url: string | null
+          show_bank_on_invoice: boolean
+          show_gcash_on_invoice: boolean
+          show_phqr_on_invoice: boolean
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          gcash_qr_url?: string | null
+          id?: number
+          invoice_layout?: string
+          phqr_qr_url?: string | null
+          show_bank_on_invoice?: boolean
+          show_gcash_on_invoice?: boolean
+          show_phqr_on_invoice?: boolean
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          gcash_qr_url?: string | null
+          id?: number
+          invoice_layout?: string
+          phqr_qr_url?: string | null
+          show_bank_on_invoice?: boolean
+          show_gcash_on_invoice?: boolean
+          show_phqr_on_invoice?: boolean
         }
         Relationships: []
       }

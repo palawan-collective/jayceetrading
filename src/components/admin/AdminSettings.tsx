@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Upload } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 export default function AdminSettings() {
   const qc = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const gcashQrRef = useRef<HTMLInputElement>(null);
+  const phqrQrRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const { data: settings } = useQuery({
@@ -23,8 +26,19 @@ export default function AdminSettings() {
     },
   });
 
+  const { data: paymentSettings } = useQuery({
+    queryKey: ["payment-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("payment_settings").select("*").eq("id", 1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const [form, setForm] = useState<any>({});
+  const [psForm, setPsForm] = useState<any>({});
   useEffect(() => { if (settings) setForm(settings); }, [settings]);
+  useEffect(() => { if (paymentSettings) setPsForm(paymentSettings); }, [paymentSettings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,12 +50,30 @@ export default function AdminSettings() {
     if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(fileName);
     const logoUrl = urlData.publicUrl;
-    // Save to DB immediately
     await supabase.from("business_settings").update({ logo_url: logoUrl }).eq("id", 1);
     setForm((f: any) => ({ ...f, logo_url: logoUrl }));
     setUploading(false);
     toast.success("Logo uploaded and saved");
     qc.invalidateQueries({ queryKey: ["business-settings"] });
+  };
+
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "gcash_qr_url" | "phqr_qr_url") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const fileName = `${field}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("logos").upload(fileName, file, { upsert: true });
+    if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(fileName);
+    const updatePayload = field === "gcash_qr_url" 
+      ? { gcash_qr_url: urlData.publicUrl } 
+      : { phqr_qr_url: urlData.publicUrl };
+    await supabase.from("payment_settings").update(updatePayload).eq("id", 1);
+    setPsForm((f: any) => ({ ...f, [field]: urlData.publicUrl }));
+    setUploading(false);
+    toast.success("QR code uploaded");
+    qc.invalidateQueries({ queryKey: ["payment-settings"] });
   };
 
   const handleSave = async () => {
@@ -52,8 +84,19 @@ export default function AdminSettings() {
     qc.invalidateQueries({ queryKey: ["business-settings"] });
   };
 
+  const handleSavePaymentSettings = async () => {
+    const { id, ...rest } = psForm;
+    const { error } = await supabase.from("payment_settings").update(rest).eq("id", 1);
+    if (error) return toast.error("Failed to save payment settings");
+    toast.success("Payment settings saved");
+    qc.invalidateQueries({ queryKey: ["payment-settings"] });
+  };
+
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f: any) => ({ ...f, [key]: e.target.value }));
+
+  const setPs = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setPsForm((f: any) => ({ ...f, [key]: e.target.value }));
 
   return (
     <div className="space-y-6">
@@ -124,6 +167,72 @@ export default function AdminSettings() {
       </Card>
 
       <Button onClick={handleSave} size="lg" className="w-full">Save All Settings</Button>
+
+      {/* Invoice Payment Settings */}
+      <Card>
+        <CardHeader><CardTitle>Invoice Payment Settings</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Show on Invoice</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={psForm.show_gcash_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_gcash_on_invoice: !!v }))} />
+              <span className="text-sm">GCash QR Code</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={psForm.show_phqr_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_phqr_on_invoice: !!v }))} />
+              <span className="text-sm">PHQR QR Code</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={psForm.show_bank_on_invoice ?? true} onCheckedChange={(v) => setPsForm((f: any) => ({ ...f, show_bank_on_invoice: !!v }))} />
+              <span className="text-sm">Bank Transfer Details</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Invoice Layout</Label>
+            <div className="flex items-center gap-2">
+              <input type="radio" name="layout" checked={psForm.invoice_layout === "show_all"} onChange={() => setPsForm((f: any) => ({ ...f, invoice_layout: "show_all" }))} />
+              <span className="text-sm">Show all payment options</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="radio" name="layout" checked={psForm.invoice_layout === "show_selected"} onChange={() => setPsForm((f: any) => ({ ...f, invoice_layout: "show_selected" }))} />
+              <span className="text-sm">Show only order's payment method</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">GCash QR Code</Label>
+            <input type="file" ref={gcashQrRef} accept="image/*" onChange={(e) => handleQrUpload(e, "gcash_qr_url")} className="hidden" />
+            <div className="flex items-center gap-3">
+              {psForm.gcash_qr_url && <img src={psForm.gcash_qr_url} alt="GCash QR" className="w-20 h-20 rounded border object-cover" />}
+              <Button variant="outline" size="sm" onClick={() => gcashQrRef.current?.click()} disabled={uploading}>
+                <Upload className="h-3 w-3 mr-1" /> Upload GCash QR
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">PHQR QR Code</Label>
+            <input type="file" ref={phqrQrRef} accept="image/*" onChange={(e) => handleQrUpload(e, "phqr_qr_url")} className="hidden" />
+            <div className="flex items-center gap-3">
+              {psForm.phqr_qr_url && <img src={psForm.phqr_qr_url} alt="PHQR QR" className="w-20 h-20 rounded border object-cover" />}
+              <Button variant="outline" size="sm" onClick={() => phqrQrRef.current?.click()} disabled={uploading}>
+                <Upload className="h-3 w-3 mr-1" /> Upload PHQR QR
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Bank Transfer Details</Label>
+            <div><Label>Bank Name</Label><Input value={psForm.bank_name || ""} onChange={setPs("bank_name")} /></div>
+            <div><Label>Account Name</Label><Input value={psForm.bank_account_name || ""} onChange={setPs("bank_account_name")} /></div>
+            <div><Label>Account Number</Label><Input value={psForm.bank_account_number || ""} onChange={setPs("bank_account_number")} /></div>
+            <div><Label>Branch (optional)</Label><Input value={psForm.bank_branch || ""} onChange={setPs("bank_branch")} /></div>
+          </div>
+
+          <Button onClick={handleSavePaymentSettings} className="w-full">Save Payment Settings</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

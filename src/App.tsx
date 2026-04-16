@@ -26,6 +26,7 @@ import AdminCategories from "./components/admin/AdminCategories";
 import AdminUnits from "./components/admin/AdminUnits";
 import DynamicPage from "./pages/DynamicPage";
 import FAQ from "./pages/FAQ";
+import Invoice from "./pages/Invoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/faq" element={<FAQ />} />
+                <Route path="/invoice/:orderId" element={<Invoice />} />
                 <Route path="/:slug" element={<DynamicPage />} />
 
                 {/* Admin Routes with Layout */}

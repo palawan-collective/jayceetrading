@@ -66,3 +66,14 @@ export function useWebsitePages() {
     },
   });
 }
+
+export function usePaymentSettings() {
+  return useQuery({
+    queryKey: ["payment-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("payment_settings").select("*").eq("id", 1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+}

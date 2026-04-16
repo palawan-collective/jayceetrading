@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
@@ -55,6 +55,26 @@ export default function AdminOrders() {
     toast.success(`Order ${status}`);
   };
 
+  const markPaid = async (order: any) => {
+    await supabase.from("orders").update({
+      payment_status: "paid",
+      paid_at: new Date().toISOString(),
+      paid_via: order.payment_method,
+    }).eq("id", order.id);
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    toast.success("Order marked as paid");
+  };
+
+  const markUnpaid = async (id: string) => {
+    await supabase.from("orders").update({
+      payment_status: "pending",
+      paid_at: null,
+      paid_via: null,
+    }).eq("id", id);
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    toast.success("Order marked as unpaid");
+  };
+
   const fillTemplate = (template: string, order: any) => {
     return template
       .replace("{name}", order.customer_name)
@@ -72,6 +92,12 @@ export default function AdminOrders() {
     window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
     const updateData = type === "confirm" ? { whatsapp_confirmation_sent: true } : { whatsapp_ready_sent: true };
     supabase.from("orders").update(updateData).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+  };
+
+  const sendPaidInvoice = (order: any) => {
+    const invoiceUrl = `${window.location.origin}/invoice/${order.id}`;
+    const msg = encodeURIComponent(`Hello ${order.customer_name}, your payment of ₱${order.total_price} for order #${order.id} has been received. View your paid invoice here: ${invoiceUrl}`);
+    window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
   };
 
   const sendEmail = (order: any, type: "confirm" | "ready") => {
@@ -94,6 +120,8 @@ export default function AdminOrders() {
       default: return "bg-primary/20 text-primary";
     }
   };
+
+  const paymentStatusColor = (s: string) => s === "paid" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500";
 
   const statusCounts = useMemo(() => {
     if (!orders) return {};
@@ -134,7 +162,10 @@ export default function AdminOrders() {
                 <div>
                   <p className="font-bold">₱{Number(o.total_price).toFixed(2)}</p>
                   <p className="text-xs text-green-500">+₱{Number(o.profit).toFixed(2)}</p>
-                  <Badge className={statusColor(o.order_status)}>{o.order_status}</Badge>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    <Badge className={statusColor(o.order_status)}>{o.order_status}</Badge>
+                    <Badge className={paymentStatusColor(o.payment_status)}>{o.payment_status}</Badge>
+                  </div>
                 </div>
                 {expandedOrder === o.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </div>
@@ -155,6 +186,28 @@ export default function AdminOrders() {
                   </div>
                 </div>
                 {o.delivery_address && <p className="text-sm"><span className="font-semibold">Address:</span> {o.delivery_address}</p>}
+
+                {/* Payment Actions */}
+                <div className="flex flex-wrap gap-2">
+                  {o.payment_status !== "paid" && (
+                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => markPaid(o)}>
+                      <DollarSign className="h-3 w-3" /> Mark Paid
+                    </Button>
+                  )}
+                  {o.payment_status === "paid" && (
+                    <>
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-destructive" onClick={() => markUnpaid(o.id)}>
+                        <DollarSign className="h-3 w-3" /> Mark Unpaid
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendPaidInvoice(o)}>
+                        <MessageCircle className="h-3 w-3" /> Send Paid Invoice
+                      </Button>
+                    </>
+                  )}
+                  <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => window.open(`/invoice/${o.id}`, "_blank")}>
+                    <ExternalLink className="h-3 w-3" /> View Invoice
+                  </Button>
+                </div>
 
                 {/* Communication Actions */}
                 <div className="flex flex-wrap gap-2">
@@ -196,6 +249,7 @@ export default function AdminOrders() {
                   {o.confirmed_at && <p>Confirmed: {new Date(o.confirmed_at).toLocaleString()}</p>}
                   {o.ready_at && <p>Ready: {new Date(o.ready_at).toLocaleString()}</p>}
                   {o.completed_at && <p>Completed: {new Date(o.completed_at).toLocaleString()}</p>}
+                  {o.paid_at && <p>Paid: {new Date(o.paid_at).toLocaleString()} via {o.paid_via}</p>}
                 </div>
               </div>
             )}
