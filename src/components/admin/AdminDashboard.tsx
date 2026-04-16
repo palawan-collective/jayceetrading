@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DollarSign, ShoppingCart, TrendingUp, Package, BarChart3, PieChart as PieChartIcon, Users, AlertTriangle, Download, Clock } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = ["hsl(var(--primary))", "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
@@ -19,8 +20,52 @@ function exportCSV(data: Record<string, any>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// Presentational helpers
+function ChartLegend({ items }: { items: { name: string; value: number; color: string }[] }) {
+  const total = items.reduce((s, i) => s + i.value, 0);
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-2">
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-1.5 text-[11px]">
+          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+          <span className="text-muted-foreground">{item.name}</span>
+          <span className="font-medium">{total > 0 ? `${(item.value / total * 100).toFixed(0)}%` : "0%"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ message = "No data available" }: { message?: string }) {
+  return <div className="flex items-center justify-center h-[180px] text-sm text-muted-foreground">{message}</div>;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+  confirmed: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  ready: "bg-green-500/15 text-green-600 dark:text-green-400",
+  completed: "bg-secondary text-foreground",
+  cancelled: "bg-destructive/15 text-destructive",
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${STATUS_STYLES[status] || "bg-secondary text-foreground"}`}>
+      {status}
+    </span>
+  );
+}
+
+function getInitials(name: string) {
+  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+const AVATAR_COLORS = ["bg-blue-500/20 text-blue-600", "bg-green-500/20 text-green-600", "bg-yellow-500/20 text-yellow-600", "bg-destructive/20 text-destructive", "bg-purple-500/20 text-purple-600", "bg-cyan-500/20 text-cyan-600"];
+
 export default function AdminDashboard() {
   const [dateRange, setDateRange] = useState("all");
+  const isMobile = useIsMobile();
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
@@ -59,7 +104,18 @@ export default function AdminDashboard() {
 
   const completed = filteredOrders.filter(o => o.order_status !== "cancelled");
   const totalSales = completed.reduce((s, o) => s + Number(o.total_price), 0);
-  const totalCost = completed.reduce((s, o) => s + (o.items as any[]).reduce((c: number, i: any) => c + (i.cost || 0) * i.quantity, 0), 0);
+
+  // Build product cost map for accurate cost lookups
+  const productCostMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (products) products.forEach(p => { map[p.name] = Number(p.cost_of_goods); });
+    return map;
+  }, [products]);
+
+  const totalCost = completed.reduce((s, o) => s + (o.items as any[]).reduce((c: number, i: any) => {
+    const cost = i.cost || productCostMap[i.name] || 0;
+    return c + cost * i.quantity;
+  }, 0), 0);
   const totalProfit = totalSales - totalCost;
   const grossMargin = totalSales > 0 ? (totalProfit / totalSales * 100) : 0;
   const avgOrder = completed.length > 0 ? totalSales / completed.length : 0;
@@ -80,11 +136,12 @@ export default function AdminDashboard() {
         if (!map[i.name]) map[i.name] = { name: i.name, qty: 0, revenue: 0, cost: 0 };
         map[i.name].qty += i.quantity;
         map[i.name].revenue += i.price * i.quantity;
-        map[i.name].cost += (i.cost || 0) * i.quantity;
+        const cost = i.cost || productCostMap[i.name] || 0;
+        map[i.name].cost += cost * i.quantity;
       });
     });
     return Object.values(map).map(p => ({ ...p, profit: p.revenue - p.cost, margin: p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue * 100) : 0 }));
-  }, [completed]);
+  }, [completed, productCostMap]);
 
   const bestSellers = [...productPerf].sort((a, b) => b.revenue - a.revenue).slice(0, 10);
   const worstSellers = [...productPerf].sort((a, b) => a.revenue - b.revenue).slice(0, 5);
@@ -160,55 +217,79 @@ export default function AdminDashboard() {
     return [{ name: "Pickup", value: pickup }, { name: "Delivery", value: delivery }];
   }, [filteredOrders]);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="year">This Year</SelectItem>
-            <SelectItem value="all">All Time</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+  const marginBadge = (margin: number) => {
+    const cls = margin > 40 ? "bg-green-500/15 text-green-600 dark:text-green-400" : margin >= 20 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400" : "bg-destructive/15 text-destructive";
+    return <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${cls}`}>{margin.toFixed(0)}%</span>;
+  };
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+  const currencyTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-popover border border-border rounded-md px-3 py-1.5 text-xs shadow-md">
+        <p className="font-medium">{label || payload[0]?.name}</p>
+        <p className="text-muted-foreground">₱{Number(payload[0]?.value).toLocaleString()}</p>
+      </div>
+    );
+  };
+
+  const countTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-popover border border-border rounded-md px-3 py-1.5 text-xs shadow-md">
+        <p className="font-medium">{label}</p>
+        <p className="text-muted-foreground">{payload[0]?.value} orders</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Date Filter */}
+      <Select value={dateRange} onValueChange={setDateRange}>
+        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="week">This Week</SelectItem>
+          <SelectItem value="month">This Month</SelectItem>
+          <SelectItem value="year">This Year</SelectItem>
+          <SelectItem value="all">All Time</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* KPI Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: "Total Sales", value: `₱${totalSales.toFixed(0)}`, icon: DollarSign, color: "text-primary" },
-          { label: "Net Profit", value: `₱${totalProfit.toFixed(0)}`, icon: TrendingUp, color: "text-green-500" },
-          { label: "Margin", value: `${grossMargin.toFixed(1)}%`, icon: BarChart3, color: "text-blue-500" },
-          { label: "Orders", value: `${filteredOrders.length}`, icon: ShoppingCart, color: "text-orange-500" },
-          { label: "Avg Order", value: `₱${avgOrder.toFixed(0)}`, icon: Package, color: "text-purple-500" },
+          { label: "Total Sales", value: `₱${totalSales.toLocaleString()}`, cls: "" },
+          { label: "Net Profit", value: `₱${totalProfit.toLocaleString()}`, cls: "text-green-500" },
+          { label: "Margin", value: `${grossMargin.toFixed(1)}%`, cls: "text-blue-500" },
+          { label: "Orders", value: `${filteredOrders.length}`, cls: "" },
+          { label: "Avg Order", value: `₱${avgOrder.toFixed(0)}`, cls: "" },
         ].map(m => (
-          <Card key={m.label}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <m.icon className={`h-4 w-4 ${m.color} shrink-0`} />
-              <div><p className="text-[10px] text-muted-foreground">{m.label}</p><p className="text-sm font-bold">{m.value}</p></div>
-            </CardContent>
-          </Card>
+          <div key={m.label} className="bg-secondary/50 rounded-md p-3 md:p-4">
+            <p className="text-[11px] text-muted-foreground">{m.label}</p>
+            <p className={`text-xl font-medium mt-0.5 ${m.cls}`}>{m.value}</p>
+          </div>
         ))}
       </div>
 
-      {/* Order Status & Funnel */}
+      {/* Order Status Pills */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Order Status (Cancel: {cancellationRate.toFixed(0)}%)</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Order Status <span className="text-muted-foreground font-normal text-xs">({cancellationRate.toFixed(0)}% cancelled)</span></CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
             {Object.entries(statusCounts).map(([status, count]) => (
-              <div key={status} className="text-center p-2 rounded-lg bg-secondary/50">
-                <p className="text-lg font-bold">{count}</p>
-                <p className="text-[10px] text-muted-foreground capitalize">{status}</p>
+              <div key={status} className={`text-center p-2.5 rounded-md ${STATUS_STYLES[status] || "bg-secondary"}`}>
+                <p className="text-xl font-medium">{count}</p>
+                <p className="text-[10px] capitalize opacity-80">{status}</p>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Revenue Charts */}
+      {/* Revenue Charts — donut with custom legends */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -218,9 +299,19 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={revByCategory}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /></BarChart>
-            </ResponsiveContainer>
+            {revByCategory.length === 0 ? <EmptyState /> : (
+              <>
+                <ChartLegend items={revByCategory.map((d, i) => ({ ...d, color: COLORS[i % COLORS.length] }))} />
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={revByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} stroke="hsl(var(--card))" strokeWidth={2}>
+                      {revByCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip content={currencyTooltip} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -231,16 +322,24 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart><Pie data={revByPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
-                {revByPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie><Tooltip /></PieChart>
-            </ResponsiveContainer>
+            {revByPayment.length === 0 ? <EmptyState /> : (
+              <>
+                <ChartLegend items={revByPayment.map((d, i) => ({ ...d, color: COLORS[i % COLORS.length] }))} />
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={revByPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} stroke="hsl(var(--card))" strokeWidth={2}>
+                      {revByPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip content={currencyTooltip} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Best/Worst Sellers */}
+      {/* Top 10 & Bottom 5 Products */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -250,32 +349,39 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1">
-              {bestSellers.map((p, i) => (
-                <div key={p.name} className="flex items-center justify-between text-xs p-1.5 rounded bg-secondary/30">
-                  <span className="truncate flex-1">#{i + 1} {p.name}</span>
-                  <span className="shrink-0 ml-2">{p.qty} · ₱{p.revenue.toFixed(0)} · <span className={p.margin > 40 ? "text-green-500" : p.margin >= 20 ? "text-yellow-500" : "text-destructive"}>{p.margin.toFixed(0)}%</span></span>
-                </div>
-              ))}
-            </div>
+            {bestSellers.length === 0 ? <EmptyState /> : (
+              <div className="space-y-0">
+                {bestSellers.map((p, i) => (
+                  <div key={p.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 text-xs">
+                    <span className="text-muted-foreground w-5 text-right shrink-0">{i + 1}</span>
+                    <span className="flex-1 min-w-0 truncate">{p.name}</span>
+                    <span className="font-medium shrink-0">₱{p.revenue.toLocaleString()}</span>
+                    {marginBadge(p.margin)}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Bottom 5 Products</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-1">
-              {worstSellers.map(p => (
-                <div key={p.name} className="flex items-center justify-between text-xs p-1.5 rounded bg-secondary/30">
-                  <span className="truncate flex-1">{p.name}</span>
-                  <span className="shrink-0 ml-2">{p.qty} sold · ₱{p.revenue.toFixed(0)}</span>
-                </div>
-              ))}
-            </div>
+            {worstSellers.length === 0 ? <EmptyState /> : (
+              <div className="space-y-0">
+                {worstSellers.map(p => (
+                  <div key={p.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 text-xs">
+                    <span className="flex-1 min-w-0 truncate">{p.name}</span>
+                    <span className="text-muted-foreground shrink-0">{p.qty} sold</span>
+                    <span className="font-medium text-destructive shrink-0">₱{p.revenue.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Product Profitability Table */}
+      {/* Product Profitability */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
@@ -284,18 +390,33 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1 max-h-60 overflow-y-auto">
-            {productPerf.sort((a, b) => b.profit - a.profit).map(p => (
-              <div key={p.name} className="flex flex-wrap items-center justify-between text-xs p-1.5 rounded bg-secondary/30 gap-1">
-                <span className="truncate min-w-[100px] flex-1">{p.name}</span>
-                <span>{p.qty}u</span>
-                <span>₱{p.revenue.toFixed(0)}</span>
-                <span className="text-muted-foreground">-₱{p.cost.toFixed(0)}</span>
-                <span className="text-green-500">₱{p.profit.toFixed(0)}</span>
-                <span className={`font-medium ${p.margin > 40 ? "text-green-500" : p.margin >= 20 ? "text-yellow-500" : "text-destructive"}`}>{p.margin.toFixed(0)}%</span>
-              </div>
-            ))}
-          </div>
+          {productPerf.length === 0 ? <EmptyState /> : (
+            <div className="space-y-0 max-h-72 overflow-y-auto">
+              {[...productPerf].sort((a, b) => b.profit - a.profit).map((p, i) => (
+                isMobile ? (
+                  <div key={p.name} className="p-2.5 border-b border-border last:border-0">
+                    <p className="font-medium text-xs truncate">{p.name}</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-[11px]">
+                      <span className="text-muted-foreground">Units Sold</span><span className="text-right">{p.qty}</span>
+                      <span className="text-muted-foreground">Revenue</span><span className="text-right">₱{p.revenue.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Cost</span><span className="text-right text-muted-foreground">₱{p.cost.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Profit</span><span className="text-right text-green-500">₱{p.profit.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Margin</span><span className="text-right">{marginBadge(p.margin)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={p.name} className={`flex items-center gap-3 py-1.5 px-2 text-xs border-b border-border last:border-0 ${i % 2 === 0 ? "bg-secondary/20" : ""}`}>
+                    <span className="flex-1 min-w-0 truncate">{p.name}</span>
+                    <span className="shrink-0 w-10 text-right text-muted-foreground">{p.qty}u</span>
+                    <span className="shrink-0 w-16 text-right">₱{p.revenue.toLocaleString()}</span>
+                    <span className="shrink-0 w-16 text-right text-muted-foreground">-₱{p.cost.toLocaleString()}</span>
+                    <span className="shrink-0 w-16 text-right text-green-500">₱{p.profit.toLocaleString()}</span>
+                    {marginBadge(p.margin)}
+                  </div>
+                )
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -308,20 +429,32 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold">{customerStats.unique}</p><p className="text-[10px] text-muted-foreground">Unique</p></div>
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold">{customerStats.returning}</p><p className="text-[10px] text-muted-foreground">Returning</p></div>
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold">{customerStats.repeatRate.toFixed(0)}%</p><p className="text-[10px] text-muted-foreground">Repeat Rate</p></div>
-          </div>
-          <p className="text-xs font-semibold mb-1">Top 10 Customers</p>
-          <div className="space-y-1">
-            {customerStats.top10.map((c, i) => (
-              <div key={c.phone} className="flex items-center justify-between text-xs p-1.5 rounded bg-secondary/30">
-                <span>#{i + 1} {c.name}</span>
-                <span>{c.orders} orders · ₱{c.total.toFixed(0)}</span>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {[
+              { label: "Unique", value: customerStats.unique, cls: "" },
+              { label: "Returning", value: customerStats.returning, cls: "" },
+              { label: "Repeat Rate", value: `${customerStats.repeatRate.toFixed(0)}%`, cls: "" },
+            ].map(m => (
+              <div key={m.label} className="bg-secondary/50 rounded-md p-2.5 text-center">
+                <p className="text-[11px] text-muted-foreground">{m.label}</p>
+                <p className="text-lg font-medium mt-0.5">{m.value}</p>
               </div>
             ))}
           </div>
+          <p className="text-xs font-semibold mb-2">Top 10 Customers</p>
+          {customerStats.top10.length === 0 ? <EmptyState message="No customers yet" /> : (
+            <div className="space-y-0">
+              {customerStats.top10.map((c, i) => (
+                <div key={c.phone} className="flex items-center gap-2.5 py-1.5 border-b border-border last:border-0 text-xs">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium shrink-0 ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}>
+                    {getInitials(c.name)}
+                  </div>
+                  <span className="flex-1 min-w-0 truncate">{c.name}</span>
+                  <span className="text-muted-foreground shrink-0">{c.orders} orders · ₱{c.total.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -335,19 +468,28 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold">₱{inventoryStats.stockValue.toFixed(0)}</p><p className="text-[10px] text-muted-foreground">Stock Value</p></div>
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold text-yellow-500">{inventoryStats.lowStock.length}</p><p className="text-[10px] text-muted-foreground">Low Stock</p></div>
-            <div className="text-center p-2 bg-secondary/50 rounded"><p className="text-lg font-bold text-destructive">{inventoryStats.outOfStock.length}</p><p className="text-[10px] text-muted-foreground">Out of Stock</p></div>
+            <div className="bg-secondary/50 rounded-md p-2.5 text-center">
+              <p className="text-[11px] text-muted-foreground">Stock Value</p>
+              <p className="text-lg font-medium text-primary mt-0.5">₱{inventoryStats.stockValue.toLocaleString()}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md p-2.5 text-center">
+              <p className="text-[11px] text-muted-foreground">Low Stock</p>
+              <p className={`text-lg font-medium mt-0.5 ${inventoryStats.lowStock.length > 0 ? "text-yellow-500" : "text-muted-foreground"}`}>{inventoryStats.lowStock.length}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md p-2.5 text-center">
+              <p className="text-[11px] text-muted-foreground">Out of Stock</p>
+              <p className={`text-lg font-medium mt-0.5 ${inventoryStats.outOfStock.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>{inventoryStats.outOfStock.length}</p>
+            </div>
           </div>
           {inventoryStats.restockSuggestions.length > 0 && (
             <>
               <p className="text-xs font-semibold mb-1">Restock Suggestions</p>
-              <div className="space-y-1">
+              <div className="space-y-0">
                 {inventoryStats.restockSuggestions.map(r => (
-                  <div key={r.name} className="flex items-center justify-between text-xs p-1.5 rounded bg-secondary/30">
-                    <span className="truncate flex-1">{r.name}</span>
-                    <span className="text-destructive">{r.current} left</span>
-                    <span className="text-muted-foreground ml-2">→ order {r.suggested}</span>
+                  <div key={r.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 text-xs">
+                    <span className="flex-1 min-w-0 truncate">{r.name}</span>
+                    <span className="text-destructive shrink-0">{r.current} left</span>
+                    <span className="text-muted-foreground shrink-0">→ order {r.suggested}</span>
                   </div>
                 ))}
               </div>
@@ -356,21 +498,25 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Time Analytics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Orders by Hour</CardTitle>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => exportCSV(ordersByHour, "orders-by-hour")}><Download className="h-3 w-3" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent>
+      {/* Time Analytics — Orders by Hour */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Orders by Hour</CardTitle>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => exportCSV(ordersByHour, "orders-by-hour")}><Download className="h-3 w-3" /></Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {completed.length === 0 ? <EmptyState /> : (
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={ordersByHour}><XAxis dataKey="hour" tick={{ fontSize: 8 }} interval={2} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="count" fill="#3b82f6" radius={[2, 2, 0, 0]} /></BarChart>
+              <BarChart data={ordersByHour}><XAxis dataKey="hour" tick={{ fontSize: 8 }} interval={2} /><YAxis tick={{ fontSize: 10 }} /><Tooltip content={countTooltip} /><Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} /></BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Orders by Day + Orders by Month */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
@@ -379,51 +525,64 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={ordersByDay}><XAxis dataKey="day" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="count" fill="#22c55e" radius={[2, 2, 0, 0]} /></BarChart>
-            </ResponsiveContainer>
+            {completed.length === 0 ? <EmptyState /> : (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={ordersByDay}><XAxis dataKey="day" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip content={countTooltip} /><Bar dataKey="count" fill="#22c55e" radius={[4, 4, 0, 0]} /></BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-sm">Orders by Month</CardTitle>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => exportCSV(ordersByMonth, "orders-by-month")}><Download className="h-3 w-3" /></Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {completed.length === 0 ? <EmptyState /> : (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={ordersByMonth}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="month" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip content={countTooltip} /><Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot /></LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-sm">Orders by Month</CardTitle>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => exportCSV(ordersByMonth, "orders-by-month")}><Download className="h-3 w-3" /></Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={ordersByMonth}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="month" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot /></LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Delivery split */}
+      {/* Bottom 5 (already shown above) + Delivery vs Pickup + Recent Orders */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Delivery vs Pickup</CardTitle></CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart><Pie data={deliverySplit} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
-                {deliverySplit.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
-              </Pie><Tooltip /></PieChart>
-            </ResponsiveContainer>
+            {filteredOrders.length === 0 ? <EmptyState /> : (
+              <>
+                <ChartLegend items={deliverySplit.map((d, i) => ({ ...d, color: COLORS[i % COLORS.length] }))} />
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={deliverySplit} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} stroke="hsl(var(--card))" strokeWidth={2}>
+                      {deliverySplit.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip content={countTooltip} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Recent Orders</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-1 max-h-[180px] overflow-y-auto">
-              {filteredOrders.slice(0, 8).map(o => (
-                <div key={o.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-secondary/30">
-                  <span className="truncate">{o.customer_name}</span>
-                  <span>₱{Number(o.total_price).toFixed(0)}</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${o.order_status === 'completed' ? 'bg-green-500/20 text-green-500' : o.order_status === 'cancelled' ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary'}`}>{o.order_status}</span>
-                </div>
-              ))}
-            </div>
+            {filteredOrders.length === 0 ? <EmptyState message="No orders yet" /> : (
+              <div className="space-y-0 max-h-[220px] overflow-y-auto">
+                {filteredOrders.slice(0, 8).map(o => (
+                  <div key={o.id} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 text-xs">
+                    <span className="flex-1 min-w-0 truncate">{o.customer_name}</span>
+                    <span className="font-medium shrink-0">₱{Number(o.total_price).toLocaleString()}</span>
+                    <StatusBadge status={o.order_status} />
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
