@@ -159,12 +159,12 @@ export default function AdminDashboard() {
     const map: Record<string, number> = {};
     completed.forEach(o => {
       (o.items as any[]).forEach((i: any) => {
-        const cat = i.category || "Other";
+        const cat = i.category || productCategoryMap[i.name] || "Other";
         map[cat] = (map[cat] || 0) + i.price * i.quantity;
       });
     });
     return Object.entries(map).map(([name, value]) => ({ name, value: +value.toFixed(0) })).sort((a, b) => b.value - a.value);
-  }, [completed]);
+  }, [completed, productCategoryMap]);
 
   // Revenue by payment
   const revByPayment = useMemo(() => {
