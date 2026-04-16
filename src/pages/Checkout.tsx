@@ -37,7 +37,7 @@ export default function Checkout() {
   const currency = business?.currency_symbol || "₱";
 
   const [form, setForm] = useState({
-    name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "Cash",
+    name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
