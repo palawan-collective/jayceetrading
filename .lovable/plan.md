@@ -1,74 +1,79 @@
 
 
-## Plan: Add Invoice Payment Features
+## Plan: Admin Dashboard UI Redesign
 
-### What We're Building
-- A public invoice page customers can view (`/invoice/:orderId`)
-- Payment QR codes and bank details on pending invoices
-- "Mark Paid / Unpaid" buttons in admin Orders
-- Invoice payment settings in admin Settings
-- A new `payment_settings` table for QR images and bank info
+**Single file change**: `src/components/admin/AdminDashboard.tsx` — JSX return and presentational helpers only. All hooks, data logic, queries, useMemo, useCallback, and `exportCSV` remain untouched.
 
 ---
 
-### Database Changes (Migration)
+### 1. Custom HTML Legend Helper
 
-**1. Add columns to `orders` table:**
-- `paid_at` (timestamptz, nullable)
-- `paid_via` (text, nullable)
+Add a small `ChartLegend` component inside the file that renders a flex-wrap div of colored squares + label + value. Used by all pie/donut charts instead of Recharts built-in labels.
 
-**2. Create `payment_settings` table:**
-- `id` (integer, PK, default 1)
-- `show_gcash_on_invoice` (boolean, default true)
-- `show_phqr_on_invoice` (boolean, default true)
-- `show_bank_on_invoice` (boolean, default true)
-- `gcash_qr_url` (text, nullable)
-- `phqr_qr_url` (text, nullable)
-- `bank_name` (text, nullable)
-- `bank_account_name` (text, nullable)
-- `bank_account_number` (text, nullable)
-- `bank_branch` (text, nullable)
-- `invoice_layout` (text, default 'show_all') -- 'show_all' or 'show_selected'
-- Public read RLS, anon/authenticated insert/update
+### 2. KPI Metric Cards
 
-**3. Seed one default row** in `payment_settings`.
+- Remove icons from cards
+- Style: `bg-secondary/50 rounded-md`, no border
+- Muted label (text-[11px]) on top, large value (text-xl font-medium) below
+- Net Profit in `text-green-500`, Margin in `text-blue-500`
+- Grid: `grid-cols-2 md:grid-cols-5`
 
----
+### 3. Order Status Pills
 
-### New Files
+Replace plain grid with colored semantic pills:
+- Pending: `bg-yellow-500/15 text-yellow-500`
+- Confirmed: `bg-blue-500/15 text-blue-500`
+- Ready: `bg-green-500/15 text-green-500`
+- Completed: `bg-secondary text-foreground`
+- Cancelled: `bg-destructive/15 text-destructive`
+- Large number (text-xl), small label (text-[10px]), centered, rounded-md
 
-**`src/pages/Invoice.tsx`** — Public invoice page at `/invoice/:orderId`
-- Fetches order + payment_settings + business_settings
-- **Pending**: Shows yellow "PENDING PAYMENT" badge, QR codes (GCash/PHQR images), bank transfer details, payment instructions
-- **Paid**: Shows green "PAID" badge with red border box, payment method used, timestamp, hides QR/bank details, shows checkmark
-- Mobile-first stacked layout, printable
+### 4. Charts — All Fixes
 
----
+- **Revenue by Category**: Convert BarChart → PieChart (donut with `innerRadius={45} outerRadius={70}`), remove built-in labels, use custom `ChartLegend` above
+- **Revenue by Payment**: Same donut treatment with custom legend
+- **Delivery vs Pickup**: Same donut + custom legend; move into same row as Bottom 5 Products
+- **Bar charts** (Orders by Hour, Day): keep as bars, add `radius={[4,4,0,0]}`
+- **Line chart** (Orders by Month): add `type="monotone"` with `strokeWidth={2}`
+- All charts: formatted tooltips with ₱ where applicable, empty state message when no data
 
-### Modified Files
+### 5. Product Tables
 
-**`src/components/admin/AdminSettings.tsx`**
-- Add "Invoice Payment Settings" card section:
-  - Toggle checkboxes for GCash/PHQR/Bank on invoice
-  - File upload for GCash QR and PHQR QR images (to `logos` bucket)
-  - Bank details inputs (name, account name, number, branch)
-  - Layout radio: "Show all" vs "Show only order's payment method"
+- **Top 10**: Rank number (muted), name (flex-1 truncate), revenue right-aligned, margin as colored pill badge (green/yellow/red)
+- **Bottom 5**: Same structure, revenue in `text-destructive`
+- Rows: `border-b border-border last:border-0` instead of bg blocks
 
-**`src/components/admin/AdminOrders.tsx`**
-- Add "Mark Paid" button (sets `payment_status=paid`, `paid_at=now()`, `paid_via=payment_method`)
-- Add "Mark Unpaid" button (reverts to pending, clears `paid_at`/`paid_via`)
-- Show payment status badge (yellow pending / green paid)
-- Add "View Invoice" link that opens `/invoice/:id` in new tab
-- Add "Send Paid Invoice" WhatsApp/email button after marking paid
+### 6. Product Profitability
 
-**`src/App.tsx`**
-- Add route: `/invoice/:orderId` → `Invoice` page
+- Fix cost lookup: cross-reference with `products` query to build `productCostMap` by name, use as fallback when order item `cost` is 0 or missing
+- Mobile: each product as a stacked card (name on top, label-value pairs below)
+- Desktop: compact row layout with striped backgrounds
 
----
+### 7. Customer Analytics
 
-### Technical Details
-- QR images uploaded to existing `logos` bucket (reuse, no new bucket needed)
-- Invoice page is public (no auth), fetches by order ID
-- CSV/PDF export not included (no invoice PDF generation — just a viewable web page)
-- All existing functionality untouched
+- Summary metrics: same clean card style as KPI row
+- Top 10 list: add initials avatar circle (28px, rounded-full) with cycling bg colors
+- Right side: muted "N orders · ₱value"
+
+### 8. Inventory Section
+
+- Conditional coloring: Stock Value `text-primary`, Low Stock `text-yellow-500` when > 0, Out of Stock `text-destructive` when > 0
+
+### 9. Recent Orders
+
+- Status badges use same color mapping as Order Status pills
+
+### 10. Layout & Mobile
+
+- All grids: `grid-cols-1 md:grid-cols-2` (KPI: `grid-cols-2 md:grid-cols-5`)
+- Status pills: `grid-cols-3 md:grid-cols-5` (wraps on mobile)
+- No horizontal scrolling anywhere
+- Name columns: `flex-1 min-w-0 truncate`
+- Import and use `useIsMobile()` for card-based mobile layouts on profitability table
+
+### Files Modified
+- `src/components/admin/AdminDashboard.tsx` — JSX rewrite + presentational helpers only
+
+### Constraint
+All `useQuery`, `useState`, `useMemo`, `useCallback`, `exportCSV`, and computed variables remain exactly as-is. Only the `return (...)` block and any new purely presentational helper components change.
 
