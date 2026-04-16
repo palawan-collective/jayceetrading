@@ -105,10 +105,16 @@ export default function AdminDashboard() {
   const completed = filteredOrders.filter(o => o.order_status !== "cancelled");
   const totalSales = completed.reduce((s, o) => s + Number(o.total_price), 0);
 
-  // Build product cost map for accurate cost lookups
+  // Build product lookup maps for accurate cost and category lookups
   const productCostMap = useMemo(() => {
     const map: Record<string, number> = {};
     if (products) products.forEach(p => { map[p.name] = Number(p.cost_of_goods); });
+    return map;
+  }, [products]);
+
+  const productCategoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (products) products.forEach(p => { map[p.name] = p.category || "Other"; });
     return map;
   }, [products]);
 
@@ -153,12 +159,12 @@ export default function AdminDashboard() {
     const map: Record<string, number> = {};
     completed.forEach(o => {
       (o.items as any[]).forEach((i: any) => {
-        const cat = i.category || "Other";
+        const cat = i.category || productCategoryMap[i.name] || "Other";
         map[cat] = (map[cat] || 0) + i.price * i.quantity;
       });
     });
     return Object.entries(map).map(([name, value]) => ({ name, value: +value.toFixed(0) })).sort((a, b) => b.value - a.value);
-  }, [completed]);
+  }, [completed, productCategoryMap]);
 
   // Revenue by payment
   const revByPayment = useMemo(() => {
