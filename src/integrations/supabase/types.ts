@@ -291,32 +291,44 @@ export type Database = {
         Row: {
           claimed_at: string | null
           created_at: string | null
+          customer_id: string | null
           customer_phone: string
           discount_amount: number | null
+          earned_at: string | null
           expires_at: string | null
           id: string
           is_claimed: boolean | null
           reward_code: string
+          reward_type: string | null
+          status: string | null
         }
         Insert: {
           claimed_at?: string | null
           created_at?: string | null
+          customer_id?: string | null
           customer_phone: string
           discount_amount?: number | null
+          earned_at?: string | null
           expires_at?: string | null
           id?: string
           is_claimed?: boolean | null
           reward_code: string
+          reward_type?: string | null
+          status?: string | null
         }
         Update: {
           claimed_at?: string | null
           created_at?: string | null
+          customer_id?: string | null
           customer_phone?: string
           discount_amount?: number | null
+          earned_at?: string | null
           expires_at?: string | null
           id?: string
           is_claimed?: boolean | null
           reward_code?: string
+          reward_type?: string | null
+          status?: string | null
         }
         Relationships: []
       }
