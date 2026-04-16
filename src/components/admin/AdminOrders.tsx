@@ -29,7 +29,7 @@ export default function AdminOrders() {
     const items = (order.items as any[]).map((i: any) => `${i.name} x${i.quantity}`).join(", ");
     const msg = encodeURIComponent(`Hi ${order.customer_name}! Your order ${order.id} has been received.\n\nItems: ${items}\nTotal: ₱${order.total_price}\n\nThank you!`);
     window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-    supabase.from("orders").update({ whatsapp_sent: true }).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+    supabase.from("orders").update({ whatsapp_confirmation_sent: true }).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
   };
 
   const statusColor = (s: string) => {
@@ -60,7 +60,7 @@ export default function AdminOrders() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="gap-1" onClick={() => sendWhatsApp(o)}>
-                <MessageCircle className="h-3 w-3" /> WhatsApp {o.whatsapp_sent && "✓"}
+                <MessageCircle className="h-3 w-3" /> WhatsApp {o.whatsapp_confirmation_sent && "✓"}
               </Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => updateStatus(o.id, "ready")}>
                 <Clock className="h-3 w-3" /> Ready
