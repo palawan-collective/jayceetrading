@@ -40,6 +40,28 @@ export default function Checkout() {
     name: "", countryCode: "+63", phone: "", email: "", deliveryType: "pickup", address: "", paymentMethod: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [savedName, setSavedName] = useState("");
+
+  // Restore saved customer profile
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("jaycee_customer_profile");
+      if (raw) {
+        const profile = JSON.parse(raw);
+        setForm(f => ({
+          ...f,
+          name: profile.name || f.name,
+          phone: profile.phoneLocal || f.phone,
+          countryCode: profile.countryCode || f.countryCode,
+          email: profile.email || f.email,
+          address: profile.address || f.address,
+        }));
+        setSavedName(profile.name || "");
+        setShowWelcome(true);
+      }
+    } catch {}
+  }, []);
 
   // Set default payment method when data loads
   useEffect(() => {
@@ -92,6 +114,18 @@ export default function Checkout() {
       setSubmitting(false);
       return;
     }
+
+    // Save customer profile to localStorage
+    try {
+      localStorage.setItem("jaycee_customer_profile", JSON.stringify({
+        name: form.name.trim(),
+        phone: fullPhone,
+        phoneLocal: form.phone,
+        countryCode: form.countryCode,
+        email: form.email.trim(),
+        address: form.address.trim(),
+      }));
+    } catch {}
 
     clearCart();
     toast.success(`Order ${orderId} placed!`);
