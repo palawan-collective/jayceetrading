@@ -56,6 +56,24 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
       contact_form_submissions: {
         Row: {
           created_at: string
@@ -425,6 +443,30 @@ export type Database = {
           is_approved?: boolean
           rating?: number
           review_text?: string
+        }
+        Relationships: []
+      }
+      units: {
+        Row: {
+          created_at: string
+          example: string | null
+          id: number
+          label: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          example?: string | null
+          id?: number
+          label: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          example?: string | null
+          id?: number
+          label?: string
+          value?: string
         }
         Relationships: []
       }

@@ -17,10 +17,18 @@ export default function AdminCategories() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
-        .select("*, products(count)")
+        .select("*")
         .order("name");
       if (error) throw error;
-      return data;
+
+      // Get product counts per category
+      const { data: products } = await supabase.from("products").select("category");
+      const counts: Record<string, number> = {};
+      products?.forEach((p) => {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      });
+
+      return data.map((cat) => ({ ...cat, productCount: counts[cat.name] || 0 }));
     },
   });
 
@@ -95,7 +103,7 @@ export default function AdminCategories() {
               <div>
                 <p className="font-medium">{cat.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {cat.products?.[0]?.count || 0} products
+                  {cat.productCount} products
                 </p>
               </div>
               <div className="flex gap-1">
@@ -106,7 +114,7 @@ export default function AdminCategories() {
                   variant="ghost"
                   size="icon"
                   className="text-destructive"
-                  onClick={() => handleDelete(cat.id, cat.products?.[0]?.count || 0)}
+                  onClick={() => handleDelete(cat.id, cat.productCount)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

@@ -46,6 +46,8 @@ const allNavItems: NavItem[] = [
   { label: "Newsletter", icon: Users, path: "/admin/newsletter" },
   { label: "Contacts", icon: Mail, path: "/admin/contacts" },
   { label: "Header/Footer", icon: FileText, path: "/admin/header-footer" },
+  { label: "Categories", icon: Package, path: "/admin/categories" },
+  { label: "Units", icon: UtensilsCrossed, path: "/admin/units" },
 ];
 
 interface AdminLayoutProps {
