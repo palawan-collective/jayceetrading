@@ -1,5 +1,6 @@
 import { ShoppingCart, Lock, Sun, Moon, Menu, X, UtensilsCrossed, Facebook, Instagram, User } from "lucide-react";
 import { useHeaderSettings, useBusinessSettings, useWebsitePages, useSocialLinks } from "@/hooks/use-settings";
+import { useNavVisibility } from "@/hooks/use-nav-visibility";
 import { useTheme } from "@/lib/theme-provider";
 import { useCartStore } from "@/lib/cart-store";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +15,20 @@ export default function Header() {
   const { data: business } = useBusinessSettings();
   const { data: pages } = useWebsitePages();
   const { data: social } = useSocialLinks();
+  const { visibleItems } = useNavVisibility();
   const { theme, toggleTheme } = useTheme();
   const cartCount = useCartStore(s => s.getItemCount());
   const toggleCart = useCartStore(s => s.toggleCart);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy" && p.slug !== "faq") || [];
+  // Dynamic pages excluding ones managed by navVisibility or system pages
+  const managedSlugs = new Set(["home", "privacy-policy", "faq", "about", "contact", "testimonials"]);
+  const navPages = pages?.filter(p => !managedSlugs.has(p.slug)) || [];
   const enabledSocial = social?.filter(s => s.is_enabled) || [];
+
+  const linkClass = "px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors";
+  const mobileLinkClass = "block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -39,27 +46,24 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
-          <Link to="/" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">Order</Link>
-          <Link to="/track" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors flex items-center gap-1"><User className="h-4 w-4" />My Account</Link>
-          <Link to="/faq" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">FAQ</Link>
+          <Link to="/" className={linkClass}>Order</Link>
+          <Link to="/track" className={`${linkClass} flex items-center gap-1`}><User className="h-4 w-4" />My Account</Link>
+          {visibleItems.map(item => (
+            <Link key={item.key} to={item.path} className={linkClass}>{item.label}</Link>
+          ))}
           {navPages.map(p => (
-            <Link key={p.slug} to={`/${p.slug}`} className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">
-              {p.title}
-            </Link>
+            <Link key={p.slug} to={`/${p.slug}`} className={linkClass}>{p.title}</Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Social icons - desktop only */}
           {enabledSocial.length > 0 && (
             <div className="hidden md:flex items-center gap-1">
               {enabledSocial.map(s => {
                 const Icon = socialIconMap[s.icon_name] || UtensilsCrossed;
                 return (
                   <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer">
-                    <Button variant="ghost" size="icon">
-                      <Icon className="h-5 w-5" />
-                    </Button>
+                    <Button variant="ghost" size="icon"><Icon className="h-5 w-5" /></Button>
                   </a>
                 );
               })}
@@ -94,13 +98,13 @@ export default function Header() {
       {/* Mobile nav */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card p-4 space-y-1">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">Order</Link>
-          <Link to="/track" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent flex items-center gap-1"><User className="h-4 w-4" />My Account</Link>
-          <Link to="/faq" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">FAQ</Link>
+          <Link to="/" onClick={() => setMobileOpen(false)} className={mobileLinkClass}>Order</Link>
+          <Link to="/track" onClick={() => setMobileOpen(false)} className={`${mobileLinkClass} flex items-center gap-1`}><User className="h-4 w-4" />My Account</Link>
+          {visibleItems.map(item => (
+            <Link key={item.key} to={item.path} onClick={() => setMobileOpen(false)} className={mobileLinkClass}>{item.label}</Link>
+          ))}
           {navPages.map(p => (
-            <Link key={p.slug} to={`/${p.slug}`} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">
-              {p.title}
-            </Link>
+            <Link key={p.slug} to={`/${p.slug}`} onClick={() => setMobileOpen(false)} className={mobileLinkClass}>{p.title}</Link>
           ))}
         </div>
       )}
