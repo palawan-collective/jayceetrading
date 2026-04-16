@@ -15,6 +15,7 @@ import AdminNewsletter from "@/components/admin/AdminNewsletter";
 import AdminContacts from "@/components/admin/AdminContacts";
 import AdminPages from "@/components/admin/AdminPages";
 import AdminHeaderFooter from "@/components/admin/AdminHeaderFooter";
+import AdminLoyalty from "@/components/admin/AdminLoyalty";
 
 const PASSKEY = "5309";
 
@@ -65,6 +66,7 @@ export default function Admin() {
           <TabsTrigger value="newsletter" className="text-xs">Newsletter</TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs">Contacts</TabsTrigger>
           <TabsTrigger value="header-footer" className="text-xs">Header/Footer</TabsTrigger>
+          <TabsTrigger value="loyalty" className="text-xs">Loyalty</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
         </TabsList>
 
@@ -78,6 +80,7 @@ export default function Admin() {
         <TabsContent value="newsletter"><AdminNewsletter /></TabsContent>
         <TabsContent value="contacts"><AdminContacts /></TabsContent>
         <TabsContent value="header-footer"><AdminHeaderFooter /></TabsContent>
+        <TabsContent value="loyalty"><AdminLoyalty /></TabsContent>
         <TabsContent value="settings"><AdminSettings /></TabsContent>
       </Tabs>
     </div>

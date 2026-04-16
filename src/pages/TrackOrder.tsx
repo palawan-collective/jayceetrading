@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Package, ChevronDown, ChevronUp, Star, Gift, CreditCard } from "lucide-react";
 import { useBusinessSettings } from "@/hooks/use-settings";
+import { TIER_COLORS, REWARD_THRESHOLDS, getNextRewardThreshold } from "@/lib/loyalty-utils";
 
 const STORAGE_KEY = "jaycee_customer_profile";
 
@@ -20,11 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const colors = STATUS_COLORS[status] || STATUS_COLORS.pending;
-  return (
-    <Badge className={`${colors} border text-xs capitalize`}>
-      {status}
-    </Badge>
-  );
+  return <Badge className={`${colors} border text-xs capitalize`}>{status}</Badge>;
 }
 
 export default function TrackOrder() {
@@ -34,8 +31,9 @@ export default function TrackOrder() {
   const [invoiceInput, setInvoiceInput] = useState("");
   const [searchInvoice, setSearchInvoice] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [loyaltyPhone, setLoyaltyPhone] = useState("");
+  const [searchLoyaltyPhone, setSearchLoyaltyPhone] = useState<string | null>(null);
 
-  // Get saved phone from localStorage for order history
   const savedProfile = (() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -44,42 +42,63 @@ export default function TrackOrder() {
   })();
   const savedPhone = savedProfile?.phone || null;
 
-  // Invoice lookup query
-  const { data: lookedUpOrder, isLoading: lookupLoading, error: lookupError } = useQuery({
+  // Invoice lookup
+  const { data: lookedUpOrder, isLoading: lookupLoading } = useQuery({
     queryKey: ["track-order", searchInvoice],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("invoice_number", searchInvoice!)
-        .single();
-      if (error) return null;
-      return data;
+      const { data } = await supabase.from("orders").select("*").eq("invoice_number", searchInvoice!).single();
+      return data || null;
     },
     enabled: !!searchInvoice,
   });
 
-  // Order history query (by phone)
+  // Order history
   const { data: orderHistory } = useQuery({
     queryKey: ["order-history", savedPhone],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("customer_phone", savedPhone!)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (error) return [];
-      return data;
+      const { data } = await supabase.from("orders").select("*").eq("customer_phone", savedPhone!).order("created_at", { ascending: false }).limit(10);
+      return data || [];
     },
     enabled: !!savedPhone,
   });
 
+  // Loyalty card lookup
+  const phoneToLookup = searchLoyaltyPhone || savedPhone;
+  const { data: loyaltyCustomer } = useQuery({
+    queryKey: ["loyalty-card", phoneToLookup],
+    queryFn: async () => {
+      const { data } = await supabase.from("loyalty_customers").select("*").eq("phone", phoneToLookup!).maybeSingle();
+      return data;
+    },
+    enabled: !!phoneToLookup,
+  });
+
+  const { data: loyaltyRewards } = useQuery({
+    queryKey: ["loyalty-rewards", loyaltyCustomer?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("loyalty_rewards").select("*").eq("customer_id", loyaltyCustomer!.id).order("earned_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!loyaltyCustomer?.id,
+  });
+
+  const { data: stampLogs } = useQuery({
+    queryKey: ["loyalty-logs", loyaltyCustomer?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("loyalty_stamp_log").select("*").eq("customer_id", loyaltyCustomer!.id).order("created_at", { ascending: false }).limit(5);
+      return data || [];
+    },
+    enabled: !!loyaltyCustomer?.id,
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (invoiceInput.trim()) {
-      setSearchInvoice(invoiceInput.trim().toUpperCase());
-    }
+    if (invoiceInput.trim()) setSearchInvoice(invoiceInput.trim().toUpperCase());
+  };
+
+  const handleLoyaltySearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loyaltyPhone.trim()) setSearchLoyaltyPhone(loyaltyPhone.trim());
   };
 
   const renderOrderDetail = (order: any) => {
@@ -96,7 +115,6 @@ export default function TrackOrder() {
           <span className="capitalize">Delivery: {order.delivery_type}</span>
           <span className="capitalize">Payment: {order.payment_method}</span>
         </div>
-        {/* Bill To */}
         <div className="border-t border-border pt-2">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Bill To</p>
           <p className="text-sm font-semibold">{order.customer_name}</p>
@@ -119,6 +137,14 @@ export default function TrackOrder() {
     );
   };
 
+  // Loyalty card rendering
+  const nextReward = loyaltyCustomer ? getNextRewardThreshold(loyaltyCustomer.stamp_count || 0) : null;
+  const stampCount = loyaltyCustomer?.stamp_count || 0;
+  const nextThreshold = nextReward?.stamps || REWARD_THRESHOLDS[REWARD_THRESHOLDS.length - 1].stamps;
+  const remaining = Math.max(0, nextThreshold - stampCount);
+  const progressPercent = nextThreshold > 0 ? Math.min(100, (stampCount / nextThreshold) * 100) : 100;
+  const unclaimedRewards = loyaltyRewards?.filter(r => r.status === "unclaimed" && (!r.expires_at || new Date(r.expires_at) > new Date())) || [];
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-lg">
       {/* Lookup Section */}
@@ -131,33 +157,143 @@ export default function TrackOrder() {
       <Card className="mb-6">
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="flex gap-2">
-            <Input
-              value={invoiceInput}
-              onChange={e => setInvoiceInput(e.target.value)}
-              placeholder="INV-2026-XXXX"
-              className="flex-1 font-mono"
-            />
-            <Button type="submit" disabled={lookupLoading} className="shrink-0 gap-2">
-              <Search className="h-4 w-4" /> Check
-            </Button>
+            <Input value={invoiceInput} onChange={e => setInvoiceInput(e.target.value)} placeholder="INV-2026-XXXX" className="flex-1 font-mono" />
+            <Button type="submit" disabled={lookupLoading} className="shrink-0 gap-2"><Search className="h-4 w-4" /> Check</Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* Lookup Result */}
       {searchInvoice && (
         <Card className="mb-6">
           <CardContent className="pt-6">
             {lookupLoading ? (
               <p className="text-center text-muted-foreground text-sm">Looking up order...</p>
-            ) : lookedUpOrder ? (
-              renderOrderDetail(lookedUpOrder)
-            ) : (
+            ) : lookedUpOrder ? renderOrderDetail(lookedUpOrder) : (
               <p className="text-center text-muted-foreground text-sm">No order found with that invoice number.</p>
             )}
           </CardContent>
         </Card>
       )}
+
+      {/* Loyalty Card Section */}
+      <div className="mt-8 mb-6">
+        <div className="text-center mb-4">
+          <CreditCard className="h-8 w-8 mx-auto text-amber-500 mb-1" />
+          <h2 className="text-lg font-semibold">Your Loyalty Card</h2>
+        </div>
+
+        {!phoneToLookup && (
+          <Card>
+            <CardContent className="pt-6">
+              <form onSubmit={handleLoyaltySearch} className="flex gap-2">
+                <Input value={loyaltyPhone} onChange={e => setLoyaltyPhone(e.target.value)} placeholder="Your phone number" className="flex-1" />
+                <Button type="submit" className="shrink-0 gap-2"><Search className="h-4 w-4" /> View</Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {phoneToLookup && !loyaltyCustomer && (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground text-sm">No loyalty card found for this phone number.</p>
+              {!savedPhone && (
+                <form onSubmit={handleLoyaltySearch} className="flex gap-2 mt-3">
+                  <Input value={loyaltyPhone} onChange={e => setLoyaltyPhone(e.target.value)} placeholder="Try another number" className="flex-1" />
+                  <Button type="submit" className="shrink-0">Search</Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {loyaltyCustomer && (
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold">{loyaltyCustomer.name || "Customer"}</p>
+                  <p className="text-xs text-muted-foreground">{loyaltyCustomer.phone}</p>
+                </div>
+                <Badge className={`${TIER_COLORS[loyaltyCustomer.tier || "regular"]} border text-xs capitalize`}>
+                  {loyaltyCustomer.tier || "regular"}
+                </Badge>
+              </div>
+
+              {/* Stamp dots */}
+              <div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {Array.from({ length: nextThreshold }, (_, i) => (
+                    <div key={i} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] ${
+                      i < stampCount ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                    }`}>
+                      {i < stampCount ? "★" : ""}
+                    </div>
+                  ))}
+                </div>
+                {/* Progress bar */}
+                <div className="w-full bg-secondary rounded-full h-2 mb-1">
+                  <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {remaining > 0 ? `${remaining} more stamp${remaining !== 1 ? "s" : ""} to next reward` : "Maximum rewards reached!"}
+                  {nextReward && <span className="ml-1">({nextReward.label})</span>}
+                </p>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-accent/30 rounded-lg p-2">
+                  <p className="text-lg font-bold">{loyaltyCustomer.lifetime_stamps || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">Lifetime Stamps</p>
+                </div>
+                <div className="bg-accent/30 rounded-lg p-2">
+                  <p className="text-lg font-bold">{currency}{Number(loyaltyCustomer.total_spent || 0).toFixed(0)}</p>
+                  <p className="text-[10px] text-muted-foreground">Total Spent</p>
+                </div>
+              </div>
+
+              {/* Unclaimed rewards */}
+              {unclaimedRewards.length > 0 && (
+                <div className="space-y-2">
+                  {unclaimedRewards.map(r => (
+                    <div key={r.id} className="border border-amber-300 bg-amber-500/10 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Gift className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-semibold">🎁 Reward ready!</span>
+                      </div>
+                      <p className="font-mono text-lg font-bold tracking-wider">{r.reward_code}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{r.reward_type?.replace("_", " ")}</p>
+                      {r.expires_at && <p className="text-xs text-muted-foreground">Expires {new Date(r.expires_at).toLocaleDateString()}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recent stamp history */}
+              {stampLogs && stampLogs.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-1">Recent Stamps</p>
+                  {stampLogs.map(l => (
+                    <div key={l.id} className="flex justify-between text-xs py-1.5 border-b border-border last:border-0">
+                      <span>{l.invoice_number} · {new Date(l.created_at!).toLocaleDateString()}</span>
+                      <span className="font-medium text-primary">+{l.stamps_earned}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!savedPhone && (
+                <form onSubmit={handleLoyaltySearch} className="flex gap-2 mt-2">
+                  <Input value={loyaltyPhone} onChange={e => setLoyaltyPhone(e.target.value)} placeholder="Try another number" className="flex-1" />
+                  <Button type="submit" size="sm">Search</Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Order History */}
       {savedPhone && orderHistory && orderHistory.length > 0 && (

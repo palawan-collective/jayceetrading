@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink } from "lucide-react";
+import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
+import StampAwardModal from "./StampAwardModal";
 
 export default function AdminOrders() {
   const qc = useQueryClient();
@@ -15,6 +16,7 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [stampOrder, setStampOrder] = useState<any>(null);
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
@@ -235,6 +237,11 @@ export default function AdminOrders() {
 
                 {/* Status Actions */}
                 <div className="flex flex-wrap gap-2">
+                  {o.order_status === "completed" && (
+                    <Button size="sm" variant="outline" className="gap-1 text-xs text-amber-600" onClick={() => setStampOrder(o)}>
+                      <Star className="h-3 w-3" /> Award Stamps
+                    </Button>
+                  )}
                   {o.order_status === "pending" && (
                     <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => updateStatus(o.id, "confirmed")}><CheckCircle className="h-3 w-3" /> Confirm</Button>
                   )}
@@ -261,6 +268,8 @@ export default function AdminOrders() {
         </Card>
       ))}
       {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No orders found</p>}
+
+      <StampAwardModal order={stampOrder} open={!!stampOrder} onClose={() => setStampOrder(null)} />
     </div>
   );
 }

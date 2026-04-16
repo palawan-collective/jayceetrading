@@ -22,6 +22,7 @@ import AdminTestimonials from "./components/admin/AdminTestimonials";
 import AdminNewsletter from "./components/admin/AdminNewsletter";
 import AdminContacts from "./components/admin/AdminContacts";
 import AdminHeaderFooter from "./components/admin/AdminHeaderFooter";
+import AdminLoyalty from "./components/admin/AdminLoyalty";
 import AdminCategories from "./components/admin/AdminCategories";
 import AdminUnits from "./components/admin/AdminUnits";
 import DynamicPage from "./pages/DynamicPage";
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="/admin/newsletter" element={<AdminLayout><AdminNewsletter /></AdminLayout>} />
                 <Route path="/admin/contacts" element={<AdminLayout><AdminContacts /></AdminLayout>} />
                 <Route path="/admin/header-footer" element={<AdminLayout><AdminHeaderFooter /></AdminLayout>} />
+                <Route path="/admin/loyalty" element={<AdminLayout><AdminLoyalty /></AdminLayout>} />
                 <Route path="/admin/categories" element={<AdminLayout><AdminCategories /></AdminLayout>} />
                 <Route path="/admin/units" element={<AdminLayout><AdminUnits /></AdminLayout>} />
 

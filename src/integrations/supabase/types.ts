@@ -245,6 +245,127 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_customers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          last_order_at: string | null
+          lifetime_stamps: number | null
+          name: string | null
+          phone: string
+          stamp_count: number | null
+          tier: string | null
+          total_orders: number | null
+          total_spent: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_order_at?: string | null
+          lifetime_stamps?: number | null
+          name?: string | null
+          phone: string
+          stamp_count?: number | null
+          tier?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_order_at?: string | null
+          lifetime_stamps?: number | null
+          name?: string | null
+          phone?: string
+          stamp_count?: number | null
+          tier?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+        }
+        Relationships: []
+      }
+      loyalty_rewards: {
+        Row: {
+          claimed_at: string | null
+          customer_id: string | null
+          earned_at: string | null
+          expires_at: string | null
+          id: string
+          reward_code: string | null
+          reward_type: string | null
+          status: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          customer_id?: string | null
+          earned_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reward_code?: string | null
+          reward_type?: string | null
+          status?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          customer_id?: string | null
+          earned_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reward_code?: string | null
+          reward_type?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_stamp_log: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          invoice_number: string | null
+          order_id: string | null
+          order_total: number | null
+          stamps_earned: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          order_id?: string | null
+          order_total?: number | null
+          stamps_earned?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          order_id?: string | null
+          order_total?: number | null
+          stamps_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_stamp_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -288,6 +409,7 @@ export type Database = {
           payment_status: string
           profit: number
           ready_at: string | null
+          reward_code_used: string | null
           subtotal: number
           total_price: number
           whatsapp_confirmation_sent: boolean
@@ -314,6 +436,7 @@ export type Database = {
           payment_status?: string
           profit?: number
           ready_at?: string | null
+          reward_code_used?: string | null
           subtotal?: number
           total_price?: number
           whatsapp_confirmation_sent?: boolean
@@ -340,6 +463,7 @@ export type Database = {
           payment_status?: string
           profit?: number
           ready_at?: string | null
+          reward_code_used?: string | null
           subtotal?: number
           total_price?: number
           whatsapp_confirmation_sent?: boolean

@@ -9,7 +9,8 @@ import { useCartStore } from "@/lib/cart-store";
 import { useBusinessSettings, usePaymentMethods } from "@/hooks/use-settings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, QrCode } from "lucide-react";
+import { ArrowLeft, QrCode, Gift, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { getDiscountPercent } from "@/lib/loyalty-utils";
 
 const COUNTRY_CODES = [
   { code: "+63", country: "PH" },
@@ -42,6 +43,12 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [savedName, setSavedName] = useState("");
+  const [rewardCode, setRewardCode] = useState("");
+  const [rewardValidation, setRewardValidation] = useState<{
+    status: "idle" | "valid" | "invalid" | "expired" | "checking";
+    reward?: any;
+    discountPercent?: number;
+  }>({ status: "idle" });
 
   // Restore saved customer profile
   useEffect(() => {
@@ -73,6 +80,22 @@ export default function Checkout() {
   const selectedPM = paymentMethods?.find(pm => pm.method_name === form.paymentMethod);
   const fullPhone = `${form.countryCode}${form.phone}`;
 
+  const validateRewardCode = async (code: string) => {
+    if (!code.trim()) { setRewardValidation({ status: "idle" }); return; }
+    setRewardValidation({ status: "checking" });
+    const { data } = await supabase.from("loyalty_rewards").select("*").eq("reward_code", code.trim().toUpperCase()).maybeSingle();
+    if (!data) { setRewardValidation({ status: "invalid" }); return; }
+    if (data.status === "claimed") { setRewardValidation({ status: "invalid" }); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setRewardValidation({ status: "expired" }); return; }
+    const dp = getDiscountPercent(data.reward_type || "");
+    setRewardValidation({ status: "valid", reward: data, discountPercent: dp });
+  };
+
+  const discountAmount = rewardValidation.status === "valid" && rewardValidation.discountPercent
+    ? getTotal() * (rewardValidation.discountPercent / 100) : 0;
+  const finalTotal = getTotal() - discountAmount;
+  const isFreeItem = rewardValidation.status === "valid" && rewardValidation.reward?.reward_type === "free_item";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return toast.error("Name is required");
@@ -93,6 +116,7 @@ export default function Checkout() {
       }
     }
 
+    const orderTotal = isFreeItem ? subtotal : finalTotal;
     const { error } = await supabase.from("orders").insert({
       id: orderId,
       customer_name: form.name.trim(),
@@ -102,17 +126,26 @@ export default function Checkout() {
       delivery_address: form.deliveryType === "delivery" ? form.address.trim() : null,
       items: items.map(i => ({ id: i.id, name: i.name, price: i.price, cost: i.cost, quantity: i.quantity, unit: i.unit })),
       subtotal,
-      total_price: subtotal,
-      profit: subtotal - totalCost,
+      total_price: orderTotal,
+      profit: orderTotal - totalCost,
       payment_method: form.paymentMethod,
       payment_status: "pending",
       order_status: "pending",
+      reward_code_used: rewardValidation.status === "valid" ? rewardValidation.reward.reward_code : null,
     });
 
     if (error) {
       toast.error("Order failed");
       setSubmitting(false);
       return;
+    }
+
+    // Mark reward as claimed
+    if (rewardValidation.status === "valid" && rewardValidation.reward) {
+      await supabase.from("loyalty_rewards").update({
+        status: "claimed",
+        claimed_at: new Date().toISOString(),
+      }).eq("id", rewardValidation.reward.id);
     }
 
     // Save customer profile to localStorage
@@ -175,9 +208,15 @@ export default function Checkout() {
                 <span>{currency}{(i.price * i.quantity).toFixed(2)}</span>
               </div>
             ))}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Reward discount ({rewardValidation.discountPercent}%)</span>
+                <span>-{currency}{discountAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>Total</span>
-              <span>{currency}{getTotal().toFixed(2)}</span>
+              <span>{currency}{(isFreeItem ? getTotal() : finalTotal).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -241,8 +280,41 @@ export default function Checkout() {
           </CardContent>
         </Card>
 
+        {/* Reward Code */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" /> Have a reward code?</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              value={rewardCode}
+              onChange={e => setRewardCode(e.target.value)}
+              onBlur={() => validateRewardCode(rewardCode)}
+              placeholder="JAYCEE-XXXX-XXXX"
+              className="font-mono"
+            />
+            {rewardValidation.status === "checking" && <p className="text-xs text-muted-foreground">Checking code...</p>}
+            {rewardValidation.status === "valid" && (
+              <div className="flex items-center gap-2 text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4" />
+                {isFreeItem
+                  ? "Free item reward applied!"
+                  : `${rewardValidation.discountPercent}% discount applied — ${currency}${discountAmount.toFixed(2)} saved`}
+              </div>
+            )}
+            {rewardValidation.status === "invalid" && (
+              <div className="flex items-center gap-2 text-destructive text-sm">
+                <XCircle className="h-4 w-4" /> Code not found or already used
+              </div>
+            )}
+            {rewardValidation.status === "expired" && (
+              <div className="flex items-center gap-2 text-amber-600 text-sm">
+                <AlertTriangle className="h-4 w-4" /> This reward has expired
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-          {submitting ? "Placing Order..." : `Place Order — ${currency}${getTotal().toFixed(2)}`}
+          {submitting ? "Placing Order..." : `Place Order — ${currency}${(isFreeItem ? getTotal() : finalTotal).toFixed(2)}`}
         </Button>
       </form>
     </div>
