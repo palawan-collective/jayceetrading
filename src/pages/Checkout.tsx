@@ -116,6 +116,7 @@ export default function Checkout() {
       }
     }
 
+    const orderTotal = isFreeItem ? subtotal : finalTotal;
     const { error } = await supabase.from("orders").insert({
       id: orderId,
       customer_name: form.name.trim(),
@@ -125,11 +126,12 @@ export default function Checkout() {
       delivery_address: form.deliveryType === "delivery" ? form.address.trim() : null,
       items: items.map(i => ({ id: i.id, name: i.name, price: i.price, cost: i.cost, quantity: i.quantity, unit: i.unit })),
       subtotal,
-      total_price: subtotal,
-      profit: subtotal - totalCost,
+      total_price: orderTotal,
+      profit: orderTotal - totalCost,
       payment_method: form.paymentMethod,
       payment_status: "pending",
       order_status: "pending",
+      reward_code_used: rewardValidation.status === "valid" ? rewardValidation.reward.reward_code : null,
     });
 
     if (error) {
