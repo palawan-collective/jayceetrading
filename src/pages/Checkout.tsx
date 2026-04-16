@@ -148,6 +148,23 @@ export default function Checkout() {
         <ArrowLeft className="h-4 w-4" /> Back to Menu
       </Button>
 
+      {showWelcome && savedName && (
+        <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 text-sm">
+          <span>Welcome back, <strong>{savedName}</strong>! Your details have been filled in.</span>
+          <button
+            type="button"
+            className="text-xs text-destructive hover:underline ml-3 shrink-0"
+            onClick={() => {
+              localStorage.removeItem("jaycee_customer_profile");
+              setForm(f => ({ ...f, name: "", phone: "", email: "", address: "" }));
+              setShowWelcome(false);
+            }}
+          >
+            Not you? Clear
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>

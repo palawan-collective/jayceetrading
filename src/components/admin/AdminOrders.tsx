@@ -88,8 +88,12 @@ export default function AdminOrders() {
     const template = type === "confirm"
       ? (settings?.confirmation_whatsapp_template || "Hello {name}, your order #{id} has been CONFIRMED. Total: {total}.")
       : (settings?.ready_whatsapp_template || "Hello {name}, your order #{id} is READY for {delivery_type}.");
-    const msg = encodeURIComponent(fillTemplate(template, order));
-    window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+    let msg = fillTemplate(template, order);
+    // Prepend invoice number and track link
+    const invoiceNum = order.invoice_number || order.id;
+    const trackUrl = `${window.location.origin}/track`;
+    msg = `[${invoiceNum}] ${msg}\n\nTrack your order: ${trackUrl}`;
+    window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
     const updateData = type === "confirm" ? { whatsapp_confirmation_sent: true } : { whatsapp_ready_sent: true };
     supabase.from("orders").update(updateData).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
   };
