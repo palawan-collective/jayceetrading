@@ -96,6 +96,13 @@ export default function TrackOrder() {
           <span className="capitalize">Delivery: {order.delivery_type}</span>
           <span className="capitalize">Payment: {order.payment_method}</span>
         </div>
+        {/* Bill To */}
+        <div className="border-t border-border pt-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Bill To</p>
+          <p className="text-sm font-semibold">{order.customer_name}</p>
+          <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+          {order.customer_email && <p className="text-xs text-muted-foreground">{order.customer_email}</p>}
+        </div>
         <div className="border-t border-border pt-2 space-y-1">
           {items.map((item: any, idx: number) => (
             <div key={idx} className="flex justify-between text-sm">
