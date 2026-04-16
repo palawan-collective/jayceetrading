@@ -1,0 +1,86 @@
+import { ShoppingCart, Lock, Sun, Moon, Menu, X, UtensilsCrossed } from "lucide-react";
+import { useHeaderSettings, useBusinessSettings, useWebsitePages } from "@/hooks/use-settings";
+import { useTheme } from "@/lib/theme-provider";
+import { useCartStore } from "@/lib/cart-store";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+
+export default function Header() {
+  const { data: header } = useHeaderSettings();
+  const { data: business } = useBusinessSettings();
+  const { data: pages } = useWebsitePages();
+  const { theme, toggleTheme } = useTheme();
+  const cartCount = useCartStore(s => s.getItemCount());
+  const toggleCart = useCartStore(s => s.toggleCart);
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navPages = pages?.filter(p => p.slug !== "home" && p.slug !== "privacy-policy") || [];
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+          {header?.show_logo !== false && (
+            business?.logo_url ? (
+              <img src={business.logo_url} alt={business.business_name} className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <UtensilsCrossed className="h-6 w-6 text-primary" />
+            )
+          )}
+          <span className="text-lg font-bold">{business?.business_name || "FoodOrder"}</span>
+        </div>
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-1">
+          <Link to="/" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">Order</Link>
+          {navPages.map(p => (
+            <Link key={p.slug} to={`/${p.slug}`} className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent transition-colors">
+              {p.title}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          {header?.show_theme_toggle !== false && (
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+          )}
+          {header?.show_cart_icon !== false && (
+            <Button variant="ghost" size="icon" className="relative" onClick={() => toggleCart()}>
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  {cartCount}
+                </Badge>
+              )}
+            </Button>
+          )}
+          {header?.show_admin_icon !== false && (
+            <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
+              <Lock className="h-5 w-5" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile nav */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-border bg-card p-4 space-y-1">
+          <Link to="/" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">Order</Link>
+          {navPages.map(p => (
+            <Link key={p.slug} to={`/${p.slug}`} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent">
+              {p.title}
+            </Link>
+          ))}
+        </div>
+      )}
+    </header>
+  );
+}
