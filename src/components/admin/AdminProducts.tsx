@@ -55,18 +55,11 @@ export default function AdminProducts() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     const ext = file.name.split(".").pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
-
     const { error } = await supabase.storage.from("product-images").upload(fileName, file);
-    if (error) {
-      toast.error("Upload failed");
-      setUploading(false);
-      return;
-    }
-
+    if (error) { toast.error("Upload failed"); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
     setForm(f => ({ ...f, image_url: urlData.publicUrl }));
     setUploading(false);
@@ -103,6 +96,19 @@ export default function AdminProducts() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
+  const getMarginColor = (cost: number, price: number) => {
+    if (price <= 0) return "text-muted-foreground";
+    const margin = ((price - cost) / price) * 100;
+    if (margin > 40) return "text-green-500";
+    if (margin >= 20) return "text-yellow-500";
+    return "text-destructive";
+  };
+
+  const getMarginPercent = (cost: number, price: number) => {
+    if (price <= 0) return "0";
+    return ((1 - cost / price) * 100).toFixed(0);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -113,18 +119,25 @@ export default function AdminProducts() {
       <div className="space-y-2">
         {products?.map(p => (
           <Card key={p.id}>
-            <CardContent className="p-4 flex flex-wrap items-center gap-4">
+            <CardContent className="p-3 flex flex-wrap items-center gap-3">
               {p.image_url && (
-                <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded object-cover" />
+                <img src={p.image_url} alt={p.name} className="w-10 h-10 rounded object-cover shrink-0" />
               )}
-              <div className="flex-1 min-w-[200px]">
-                <p className="font-medium">{p.name} {p.is_special && <span className="text-primary text-xs">★ SPECIAL</span>}</p>
-                <p className="text-xs text-muted-foreground">{p.category} · ₱{p.cost_of_goods} cost · ₱{p.price} sell · {((1 - p.cost_of_goods / p.price) * 100).toFixed(0)}% margin</p>
+              <div className="flex-1 min-w-[150px]">
+                <p className="font-medium text-sm">{p.name} {p.is_special && <span className="text-primary text-xs">★</span>}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.category} · ₱{Number(p.cost_of_goods).toFixed(0)} → ₱{Number(p.price).toFixed(0)} ·{" "}
+                  <span className={getMarginColor(Number(p.cost_of_goods), Number(p.price))}>
+                    {getMarginPercent(Number(p.cost_of_goods), Number(p.price))}% margin
+                  </span>
+                </p>
               </div>
-              <div className="text-sm">Stock: <span className={p.inventory <= p.inventory_min_threshold ? "text-destructive font-bold" : ""}>{p.inventory}</span></div>
+              <div className="text-xs">
+                Stock: <span className={p.inventory <= p.inventory_min_threshold ? "text-destructive font-bold" : ""}>{p.inventory}</span>
+              </div>
               <Switch checked={p.is_available} onCheckedChange={v => toggleAvailable(p.id, v)} />
-              <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3 w-3" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="h-3 w-3" /></Button>
             </CardContent>
           </Card>
         ))}
@@ -167,6 +180,8 @@ export default function AdminProducts() {
               </div>
               <div><Label>Inventory</Label><Input type="number" value={form.inventory} onChange={e => setForm(f => ({ ...f, inventory: +e.target.value }))} /></div>
             </div>
+
+            <div><Label>Min Stock Threshold</Label><Input type="number" value={form.inventory_min_threshold} onChange={e => setForm(f => ({ ...f, inventory_min_threshold: +e.target.value }))} /></div>
 
             <div>
               <Label>Product Image</Label>
