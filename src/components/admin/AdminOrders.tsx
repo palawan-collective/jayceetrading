@@ -4,19 +4,45 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star } from "lucide-react";
+import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star, Store, Truck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
 import StampAwardModal from "./StampAwardModal";
 
-export default function AdminOrders() {
+function relativeTime(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+interface AdminOrdersProps {
+  initialStatusFilter?: string;
+}
+
+export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = {}) {
   const qc = useQueryClient();
   const { data: settings } = useBusinessSettings();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [stampOrder, setStampOrder] = useState<any>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (initialStatusFilter && statusFilter === "all") setStatusFilter(initialStatusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStatusFilter]);
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
