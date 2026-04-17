@@ -174,15 +174,17 @@ function computeWidths(
   });
 }
 
-async function tryLoadLogoBuffer(): Promise<ArrayBuffer | null> {
-  try {
-    const res = await fetch("/jaycee-logo.png");
-    if (!res.ok) return null;
-    return await res.arrayBuffer();
-  } catch (e) {
-    console.warn("[xlsx-export] Logo not loaded:", e);
-    return null;
+async function tryLoadLogoBuffer(): Promise<{ buffer: ArrayBuffer; ext: "png" | "jpeg" } | null> {
+  for (const [path, ext] of [["/jaycee-logo.png", "png"], ["/jaycee-logo.jpg", "jpeg"]] as const) {
+    try {
+      const res = await fetch(path);
+      if (!res.ok) continue;
+      const buffer = await res.arrayBuffer();
+      return { buffer, ext };
+    } catch { /* try next */ }
   }
+  console.warn("[xlsx-export] Logo not found at /jaycee-logo.png or /jaycee-logo.jpg");
+  return null;
 }
 
 // ----- Main builder -----
@@ -263,12 +265,11 @@ export async function buildBrandedWorkbook(opts: BuildBrandedWorkbookOptions): P
   ws.getRow(6).height = 10;
 
   // ---- Logo (top-right H1:I5 if there are >= 9 columns; else skip gracefully) ----
-  const logoBuf = await tryLoadLogoBuffer();
-  if (logoBuf && colCount >= 2) {
+  const logo = await tryLoadLogoBuffer();
+  if (logo && colCount >= 2) {
     try {
-      const imgId = wb.addImage({ buffer: logoBuf as any, extension: "png" });
-      // Anchor: position from H1 to I5 if possible, else last 2 cols rows 1-5
-      const startCol = Math.max(7, colCount - 2); // 0-indexed: column H is index 7
+      const imgId = wb.addImage({ buffer: logo.buffer as any, extension: logo.ext });
+      const startCol = Math.max(7, colCount - 2);
       const endCol = startCol + 2;
       ws.addImage(imgId, {
         tl: { col: startCol, row: 0 } as any,
