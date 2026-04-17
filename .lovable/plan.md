@@ -1,79 +1,50 @@
 
 
-## Plan: Admin Dashboard UI Redesign
+## Plan: Reports Tab + Accounting Overhaul
 
-**Single file change**: `src/components/admin/AdminDashboard.tsx` — JSX return and presentational helpers only. All hooks, data logic, queries, useMemo, useCallback, and `exportCSV` remain untouched.
+### 1. New "Reports" tab in admin nav
+Insert between Orders and Specials in `src/pages/Admin.tsx`. Create `src/components/admin/AdminReports.tsx` as the container.
 
----
+### 2. Date range picker (top of Reports tab)
+- Preset pill buttons: Today, Yesterday, This Week, Last Week, This Month, Last Month, This Year, All Time
+- Custom from/to via shadcn Calendar in Popover (with `pointer-events-auto`)
+- Single `dateRange` state drives all 5 reports + invoices section
+- Helper `src/lib/date-presets.ts` returns `{from, to}` per preset using `date-fns`
 
-### 1. Custom HTML Legend Helper
+### 3. CSV utility
+New `src/lib/csv-export.ts`:
+- `toCSV(rows, headers)` — escapes quotes/commas/newlines
+- `downloadCSV(filename, csv)` — prepends UTF-8 BOM (`\uFEFF`), triggers download
+- Snake_case headers enforced
 
-Add a small `ChartLegend` component inside the file that renders a flex-wrap div of colored squares + label + value. Used by all pie/donut charts instead of Recharts built-in labels.
+### 4. Five report cards
+Each card: title, description, live record count (queried on mount + range change), download button. All queries fetch ALL matching rows (paginate with `.range()` in batches of 1000 to bypass Supabase row limit).
 
-### 2. KPI Metric Cards
+| Report | Source | Notes |
+|---|---|---|
+| 1. Full Orders | `orders` filtered by `created_at` | Items jsonb → `notes` left blank if absent |
+| 2. Line Items | `orders` → flatten `items` jsonb, join product cost/category from `products` | Compute `line_gross_profit`, `margin_percent` client-side |
+| 3. Revenue Summary | `orders` grouped by date in JS | Includes totals row |
+| 4. Payments | `orders` (payment fields) | Append per-method subtotal rows |
+| 5. Loyalty | `loyalty_customers` + `loyalty_stamp_log` + `loyalty_rewards` filtered by `created_at` in range | Aggregate stamps_earned_period, rewards_claimed_period |
 
-- Remove icons from cards
-- Style: `bg-secondary/50 rounded-md`, no border
-- Muted label (text-[11px]) on top, large value (text-xl font-medium) below
-- Net Profit in `text-green-500`, Margin in `text-blue-500`
-- Grid: `grid-cols-2 md:grid-cols-5`
+### 5. Invoices subsection
+Below report cards. Fetches orders in range, groups by `order_status` (Pending/Confirmed/Ready/Completed/Cancelled). Collapsible cards per status, expandable order rows showing items, totals, customer info. "Download Invoice PDF" button per order opens `/invoice/:id` in print-ready mode (reuse existing `src/pages/Invoice.tsx` + `window.print()`).
 
-### 3. Order Status Pills
+### 6. Dashboard CSV fix
+Audit `AdminDashboard.tsx` exports. Replace any in-memory slicing with paginated full fetches respecting the dashboard's date filter. Extract shared `fetchAllOrders(from, to)` into `src/lib/reports-queries.ts` so Dashboard + Reports use identical logic.
 
-Replace plain grid with colored semantic pills:
-- Pending: `bg-yellow-500/15 text-yellow-500`
-- Confirmed: `bg-blue-500/15 text-blue-500`
-- Ready: `bg-green-500/15 text-green-500`
-- Completed: `bg-secondary text-foreground`
-- Cancelled: `bg-destructive/15 text-destructive`
-- Large number (text-xl), small label (text-[10px]), centered, rounded-md
+### 7. Mobile-first UI
+- Vertical stack of report cards (`grid-cols-1`)
+- Date presets wrap with `flex-wrap gap-2`
+- Calendar in Popover (touch-friendly)
+- No tables that overflow — invoice details use stacked label/value rows on mobile, optional 2-col on `md:`
+- Honors `no-horizontal-scroll` constraint
 
-### 4. Charts — All Fixes
+### Files
+**Create:** `AdminReports.tsx`, `csv-export.ts`, `date-presets.ts`, `reports-queries.ts`
+**Edit:** `Admin.tsx` (add tab), `AdminDashboard.tsx` (fix exports)
 
-- **Revenue by Category**: Convert BarChart → PieChart (donut with `innerRadius={45} outerRadius={70}`), remove built-in labels, use custom `ChartLegend` above
-- **Revenue by Payment**: Same donut treatment with custom legend
-- **Delivery vs Pickup**: Same donut + custom legend; move into same row as Bottom 5 Products
-- **Bar charts** (Orders by Hour, Day): keep as bars, add `radius={[4,4,0,0]}`
-- **Line chart** (Orders by Month): add `type="monotone"` with `strokeWidth={2}`
-- All charts: formatted tooltips with ₱ where applicable, empty state message when no data
-
-### 5. Product Tables
-
-- **Top 10**: Rank number (muted), name (flex-1 truncate), revenue right-aligned, margin as colored pill badge (green/yellow/red)
-- **Bottom 5**: Same structure, revenue in `text-destructive`
-- Rows: `border-b border-border last:border-0` instead of bg blocks
-
-### 6. Product Profitability
-
-- Fix cost lookup: cross-reference with `products` query to build `productCostMap` by name, use as fallback when order item `cost` is 0 or missing
-- Mobile: each product as a stacked card (name on top, label-value pairs below)
-- Desktop: compact row layout with striped backgrounds
-
-### 7. Customer Analytics
-
-- Summary metrics: same clean card style as KPI row
-- Top 10 list: add initials avatar circle (28px, rounded-full) with cycling bg colors
-- Right side: muted "N orders · ₱value"
-
-### 8. Inventory Section
-
-- Conditional coloring: Stock Value `text-primary`, Low Stock `text-yellow-500` when > 0, Out of Stock `text-destructive` when > 0
-
-### 9. Recent Orders
-
-- Status badges use same color mapping as Order Status pills
-
-### 10. Layout & Mobile
-
-- All grids: `grid-cols-1 md:grid-cols-2` (KPI: `grid-cols-2 md:grid-cols-5`)
-- Status pills: `grid-cols-3 md:grid-cols-5` (wraps on mobile)
-- No horizontal scrolling anywhere
-- Name columns: `flex-1 min-w-0 truncate`
-- Import and use `useIsMobile()` for card-based mobile layouts on profitability table
-
-### Files Modified
-- `src/components/admin/AdminDashboard.tsx` — JSX rewrite + presentational helpers only
-
-### Constraint
-All `useQuery`, `useState`, `useMemo`, `useCallback`, `exportCSV`, and computed variables remain exactly as-is. Only the `return (...)` block and any new purely presentational helper components change.
+### Out of scope
+No schema changes. No new RLS. No edge functions. PDF download reuses existing Invoice page print flow.
 
