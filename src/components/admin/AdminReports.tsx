@@ -11,7 +11,9 @@ import {
 import { CalendarIcon, Download, FileText, ChevronDown, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRESETS, getPresetRange, type DateRange, type PresetKey } from "@/lib/date-presets";
-import { toCSV, downloadCSV } from "@/lib/csv-export";
+import {
+  buildBrandedCSV, downloadCSV, brandedFilename, normalizePaymentMethod,
+} from "@/lib/csv-export";
 import {
   fetchAllOrders, fetchAllProducts, fetchAllLoyaltyCustomers,
   fetchLoyaltyStampLog, fetchLoyaltyRewards,
@@ -32,6 +34,17 @@ function rangeKey(r: DateRange) {
 
 function fmtDate(d: Date | null) {
   return d ? format(d, "MMM d, yyyy") : "—";
+}
+
+function itemsSummary(items: any[]): string {
+  if (!Array.isArray(items) || !items.length) return "";
+  return items
+    .map(it => {
+      const name = it.name ?? it.product_name ?? "Item";
+      const qty = Number(it.quantity ?? it.qty ?? 1);
+      return `${name} x${qty}`;
+    })
+    .join(", ");
 }
 
 export default function AdminReports() {
@@ -79,8 +92,24 @@ export default function AdminReports() {
 
   // === Report 1: Full Orders ===
   const exportFullOrders = () => {
+    const headers = [
+      "order_id", "invoice_number", "order_date", "order_time",
+      "customer_name", "customer_phone", "customer_email",
+      "order_status", "fulfillment_type", "payment_method", "payment_status",
+      "delivery_address", "subtotal", "discount_amount", "loyalty_redeemed",
+      "total", "notes", "items_summary",
+    ];
+    let sumSubtotal = 0, sumDiscount = 0, sumLoyalty = 0, sumTotal = 0;
     const rows = orders.map((o: any) => {
       const created = new Date(o.created_at);
+      const subtotal = Number(o.subtotal ?? 0);
+      const total = Number(o.total_price ?? 0);
+      const discount = Math.max(0, subtotal - total);
+      const loyalty = o.reward_code_used ? 1 : 0;
+      sumSubtotal += subtotal;
+      sumDiscount += discount;
+      sumLoyalty += loyalty;
+      sumTotal += total;
       return {
         order_id: o.id,
         invoice_number: o.invoice_number ?? "",
@@ -91,16 +120,32 @@ export default function AdminReports() {
         customer_email: o.customer_email ?? "",
         order_status: o.order_status,
         fulfillment_type: o.delivery_type,
-        payment_method: o.payment_method,
+        payment_method: normalizePaymentMethod(o.payment_method),
         payment_status: o.payment_status,
-        subtotal: Number(o.subtotal ?? 0).toFixed(2),
-        discount_amount: Number((o.subtotal ?? 0) - (o.total_price ?? 0)).toFixed(2),
+        delivery_address: o.delivery_type === "pickup" ? "" : (o.delivery_address ?? ""),
+        subtotal: subtotal.toFixed(2),
+        discount_amount: discount.toFixed(2),
         loyalty_redeemed: o.reward_code_used ?? "",
-        total: Number(o.total_price ?? 0).toFixed(2),
+        total: total.toFixed(2),
         notes: "",
+        items_summary: itemsSummary(Array.isArray(o.items) ? o.items : []),
       };
     });
-    downloadCSV(`full_orders_${format(new Date(), "yyyyMMdd_HHmm")}`, toCSV(rows));
+
+    const footerRows: any[][] = [
+      [],
+      [
+        "TOTALS", orders.length, "", "", "", "", "", "", "", "", "", "",
+        sumSubtotal.toFixed(2), sumDiscount.toFixed(2), sumLoyalty,
+        sumTotal.toFixed(2), "", "",
+      ],
+    ];
+
+    const csv = buildBrandedCSV({
+      reportName: "Full Orders Export",
+      range, headers, rows, footerRows,
+    });
+    downloadCSV(brandedFilename("full_orders"), csv);
   };
 
   // === Report 2: Line Items ===
@@ -109,7 +154,14 @@ export default function AdminReports() {
   }, [orders]);
 
   const exportLineItems = () => {
+    const headers = [
+      "order_id", "invoice_number", "customer_name", "order_date",
+      "product_name", "category", "quantity",
+      "unit_cost", "unit_price", "line_cost", "line_revenue",
+      "line_gross_profit", "margin_percent",
+    ];
     const rows: any[] = [];
+    let sumQty = 0, sumCost = 0, sumRev = 0, sumProfit = 0;
     orders.forEach((o: any) => {
       const items = Array.isArray(o.items) ? o.items : [];
       const created = new Date(o.created_at);
@@ -123,8 +175,14 @@ export default function AdminReports() {
         const lineCost = +(qty * unitCost).toFixed(2);
         const lineProfit = +(lineRev - lineCost).toFixed(2);
         const margin = lineRev > 0 ? +(lineProfit / lineRev * 100).toFixed(2) : 0;
+        sumQty += qty;
+        sumCost += lineCost;
+        sumRev += lineRev;
+        sumProfit += lineProfit;
         rows.push({
           order_id: o.id,
+          invoice_number: o.invoice_number ?? "",
+          customer_name: o.customer_name,
           order_date: format(created, "yyyy-MM-dd"),
           product_name: name,
           category: it.category ?? product?.category ?? "",
@@ -138,7 +196,22 @@ export default function AdminReports() {
         });
       });
     });
-    downloadCSV(`line_items_${format(new Date(), "yyyyMMdd_HHmm")}`, toCSV(rows));
+
+    const avgMargin = sumRev > 0 ? (sumProfit / sumRev * 100).toFixed(2) : "0.00";
+    const footerRows: any[][] = [
+      [],
+      [
+        "TOTALS", "", "", "", "", "", sumQty,
+        sumCost.toFixed(2), "", sumRev.toFixed(2),
+        sumProfit.toFixed(2), avgMargin,
+      ],
+    ];
+
+    const csv = buildBrandedCSV({
+      reportName: "Order Line Items",
+      range, headers, rows, footerRows,
+    });
+    downloadCSV(brandedFilename("line_items"), csv);
   };
 
   // === Report 3: Revenue Summary ===
@@ -170,73 +243,170 @@ export default function AdminReports() {
   }, [orders, productMap]);
 
   const exportRevenueSummary = () => {
-    const rows = revenueSummaryRows.map(r => ({
-      date: r.date,
-      order_count: r.order_count,
-      gross_revenue: r.gross_revenue.toFixed(2),
-      total_discounts: r.total_discounts.toFixed(2),
-      total_cogs: r.total_cogs.toFixed(2),
-      net_revenue: r.net_revenue.toFixed(2),
-      gross_profit: r.gross_profit.toFixed(2),
-      avg_order_value: r.order_count ? (r.net_revenue / r.order_count).toFixed(2) : "0.00",
-    }));
-    if (rows.length) {
-      const totals = rows.reduce((acc, r) => ({
+    const headers = [
+      "date", "order_count", "gross_revenue", "total_discounts",
+      "total_cogs", "net_revenue", "gross_profit", "margin_percent",
+      "avg_order_value",
+    ];
+    const rows = revenueSummaryRows.map(r => {
+      const margin = r.gross_revenue > 0 ? (r.gross_profit / r.gross_revenue * 100) : 0;
+      return {
+        date: r.date,
+        order_count: r.order_count,
+        gross_revenue: r.gross_revenue.toFixed(2),
+        total_discounts: r.total_discounts.toFixed(2),
+        total_cogs: r.total_cogs.toFixed(2),
+        net_revenue: r.net_revenue.toFixed(2),
+        gross_profit: r.gross_profit.toFixed(2),
+        margin_percent: margin.toFixed(1),
+        avg_order_value: r.order_count ? (r.net_revenue / r.order_count).toFixed(2) : "0.00",
+      };
+    });
+
+    const footerRows: any[][] = [];
+    if (revenueSummaryRows.length) {
+      const totals = revenueSummaryRows.reduce((acc, r) => ({
         order_count: acc.order_count + r.order_count,
-        gross_revenue: acc.gross_revenue + parseFloat(r.gross_revenue),
-        total_discounts: acc.total_discounts + parseFloat(r.total_discounts),
-        total_cogs: acc.total_cogs + parseFloat(r.total_cogs),
-        net_revenue: acc.net_revenue + parseFloat(r.net_revenue),
-        gross_profit: acc.gross_profit + parseFloat(r.gross_profit),
+        gross_revenue: acc.gross_revenue + r.gross_revenue,
+        total_discounts: acc.total_discounts + r.total_discounts,
+        total_cogs: acc.total_cogs + r.total_cogs,
+        net_revenue: acc.net_revenue + r.net_revenue,
+        gross_profit: acc.gross_profit + r.gross_profit,
       }), { order_count: 0, gross_revenue: 0, total_discounts: 0, total_cogs: 0, net_revenue: 0, gross_profit: 0 });
-      rows.push({
-        date: "TOTAL",
-        order_count: totals.order_count,
-        gross_revenue: totals.gross_revenue.toFixed(2),
-        total_discounts: totals.total_discounts.toFixed(2),
-        total_cogs: totals.total_cogs.toFixed(2),
-        net_revenue: totals.net_revenue.toFixed(2),
-        gross_profit: totals.gross_profit.toFixed(2),
-        avg_order_value: totals.order_count ? (totals.net_revenue / totals.order_count).toFixed(2) : "0.00",
-      });
+      const totalMargin = totals.gross_revenue > 0 ? (totals.gross_profit / totals.gross_revenue * 100) : 0;
+      footerRows.push([]);
+      footerRows.push([
+        "TOTAL", totals.order_count,
+        totals.gross_revenue.toFixed(2),
+        totals.total_discounts.toFixed(2),
+        totals.total_cogs.toFixed(2),
+        totals.net_revenue.toFixed(2),
+        totals.gross_profit.toFixed(2),
+        totalMargin.toFixed(1),
+        totals.order_count ? (totals.net_revenue / totals.order_count).toFixed(2) : "0.00",
+      ]);
     }
-    downloadCSV(`revenue_summary_${format(new Date(), "yyyyMMdd_HHmm")}`, toCSV(rows));
+
+    // Payment method breakdown
+    const byMethod = new Map<string, { count: number; total: number }>();
+    orders.forEach((o: any) => {
+      const m = normalizePaymentMethod(o.payment_method);
+      const cur = byMethod.get(m) ?? { count: 0, total: 0 };
+      cur.count += 1;
+      cur.total += Number(o.total_price ?? 0);
+      byMethod.set(m, cur);
+    });
+    if (byMethod.size > 0) {
+      footerRows.push([]);
+      footerRows.push(["PAYMENT METHOD BREAKDOWN"]);
+      footerRows.push(["payment_method", "order_count", "total_amount"]);
+      Array.from(byMethod.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .forEach(([m, v]) => {
+          footerRows.push([m, v.count, v.total.toFixed(2)]);
+        });
+    }
+
+    const csv = buildBrandedCSV({
+      reportName: "Revenue Summary",
+      range, headers, rows, footerRows,
+    });
+    downloadCSV(brandedFilename("revenue_summary"), csv);
   };
 
   // === Report 4: Payments ===
   const exportPayments = () => {
-    const rows: any[] = orders.map((o: any) => ({
+    const headers = [
+      "order_id", "order_date", "customer_name",
+      "payment_method", "amount", "payment_status",
+    ];
+
+    const enriched = orders.map((o: any) => ({
       order_id: o.id,
       order_date: format(new Date(o.created_at), "yyyy-MM-dd"),
       customer_name: o.customer_name,
-      payment_method: o.payment_method,
-      amount: Number(o.total_price ?? 0).toFixed(2),
+      payment_method: normalizePaymentMethod(o.payment_method),
+      amount: Number(o.total_price ?? 0),
       payment_status: o.payment_status,
     }));
-    // Subtotals by payment method
-    const byMethod = new Map<string, number>();
-    orders.forEach((o: any) => {
-      const m = o.payment_method || "unknown";
-      byMethod.set(m, (byMethod.get(m) ?? 0) + Number(o.total_price ?? 0));
+
+    enriched.sort((a, b) => {
+      if (a.payment_method !== b.payment_method) return a.payment_method.localeCompare(b.payment_method);
+      return a.order_date.localeCompare(b.order_date);
     });
-    if (byMethod.size > 0) {
-      rows.push({ order_id: "", order_date: "", customer_name: "", payment_method: "", amount: "", payment_status: "" });
-      byMethod.forEach((amt, m) => {
+
+    const rows: Record<string, any>[] = [];
+    const footerRows: any[][] = [];
+    let currentMethod: string | null = null;
+    let methodSum = 0;
+    let methodCount = 0;
+    let grandTotal = 0;
+    let grandCount = 0;
+
+    const flushSubtotal = () => {
+      if (currentMethod !== null) {
+        footerRows.push([]); // spacer not ideal mid-rows; use inline rows instead
+      }
+    };
+
+    // We want subtotals inline between groups, so build rows directly
+    enriched.forEach((r, i) => {
+      if (currentMethod !== null && r.payment_method !== currentMethod) {
         rows.push({
-          order_id: "SUBTOTAL",
-          order_date: "",
-          customer_name: "",
-          payment_method: m,
-          amount: amt.toFixed(2),
-          payment_status: "",
+          order_id: "SUBTOTAL", order_date: "", customer_name: "",
+          payment_method: currentMethod, amount: methodSum.toFixed(2),
+          payment_status: `${methodCount} order${methodCount !== 1 ? "s" : ""}`,
         });
+        rows.push({ order_id: "", order_date: "", customer_name: "", payment_method: "", amount: "", payment_status: "" });
+        methodSum = 0;
+        methodCount = 0;
+      }
+      currentMethod = r.payment_method;
+      methodSum += r.amount;
+      methodCount += 1;
+      grandTotal += r.amount;
+      grandCount += 1;
+      rows.push({
+        order_id: r.order_id,
+        order_date: r.order_date,
+        customer_name: r.customer_name,
+        payment_method: r.payment_method,
+        amount: r.amount.toFixed(2),
+        payment_status: r.payment_status,
       });
+      if (i === enriched.length - 1 && currentMethod !== null) {
+        rows.push({
+          order_id: "SUBTOTAL", order_date: "", customer_name: "",
+          payment_method: currentMethod, amount: methodSum.toFixed(2),
+          payment_status: `${methodCount} order${methodCount !== 1 ? "s" : ""}`,
+        });
+      }
+    });
+
+    if (grandCount > 0) {
+      footerRows.push([]);
+      footerRows.push([
+        "GRAND TOTAL", "", "", "", grandTotal.toFixed(2),
+        `${grandCount} order${grandCount !== 1 ? "s" : ""}`,
+      ]);
     }
-    downloadCSV(`payments_${format(new Date(), "yyyyMMdd_HHmm")}`, toCSV(rows, ["order_id", "order_date", "customer_name", "payment_method", "amount", "payment_status"]));
+
+    const csv = buildBrandedCSV({
+      reportName: "Payments Report",
+      range, headers, rows, footerRows,
+    });
+    downloadCSV(brandedFilename("payments"), csv);
   };
 
   // === Report 5: Loyalty ===
   const exportLoyalty = () => {
+    const headers = [
+      "customer_name", "customer_phone", "tier", "status",
+      "stamps_earned_period", "rewards_claimed_period",
+      "lifetime_stamps", "next_reward_at",
+      "total_orders", "total_spent",
+    ];
+
     const stampsByCustomer = new Map<string, number>();
     stampLog.forEach((s: any) => {
       if (!s.customer_id) return;
@@ -247,17 +417,50 @@ export default function AdminReports() {
       if (!r.is_claimed) return;
       rewardsByPhone.set(r.customer_phone, (rewardsByPhone.get(r.customer_phone) ?? 0) + 1);
     });
-    const rows = loyaltyCustomers.map((c: any) => ({
-      customer_name: c.name ?? "",
-      customer_phone: c.phone,
-      tier: c.tier ?? "regular",
-      stamps_earned_period: stampsByCustomer.get(c.id) ?? 0,
-      rewards_claimed_period: rewardsByPhone.get(c.phone) ?? 0,
-      lifetime_stamps: c.lifetime_stamps ?? 0,
-      total_orders: c.total_orders ?? 0,
-      total_spent: Number(c.total_spent ?? 0).toFixed(2),
-    }));
-    downloadCSV(`loyalty_${format(new Date(), "yyyyMMdd_HHmm")}`, toCSV(rows));
+
+    const rows = loyaltyCustomers
+      .map((c: any) => {
+        const stampsPeriod = stampsByCustomer.get(c.id) ?? 0;
+        const lifetime = Number(c.lifetime_stamps ?? 0);
+        const nextReward = lifetime > 0 && lifetime % 10 === 0 ? 0 : 10 - (lifetime % 10);
+        return {
+          customer_name: c.name ?? "",
+          customer_phone: c.phone,
+          tier: c.tier ?? "regular",
+          status: stampsPeriod > 0 ? "Active" : "Inactive",
+          stamps_earned_period: stampsPeriod,
+          rewards_claimed_period: rewardsByPhone.get(c.phone) ?? 0,
+          lifetime_stamps: lifetime,
+          next_reward_at: nextReward,
+          total_orders: c.total_orders ?? 0,
+          total_spent: Number(c.total_spent ?? 0).toFixed(2),
+          _lifetime_sort: lifetime,
+          _spent_sort: Number(c.total_spent ?? 0),
+        };
+      })
+      .sort((a, b) => b._lifetime_sort - a._lifetime_sort)
+      .map(({ _lifetime_sort, _spent_sort, ...rest }) => rest);
+
+    const totals = rows.reduce((acc, r) => ({
+      stamps: acc.stamps + Number(r.stamps_earned_period ?? 0),
+      lifetime: acc.lifetime + Number(r.lifetime_stamps ?? 0),
+      spent: acc.spent + parseFloat(String(r.total_spent ?? "0")),
+    }), { stamps: 0, lifetime: 0, spent: 0 });
+
+    const footerRows: any[][] = [
+      [],
+      [
+        "TOTALS", `${rows.length} customers`, "", "",
+        totals.stamps, "", totals.lifetime, "", "",
+        totals.spent.toFixed(2),
+      ],
+    ];
+
+    const csv = buildBrandedCSV({
+      reportName: "Loyalty Program Report",
+      range, headers, rows, footerRows,
+    });
+    downloadCSV(brandedFilename("loyalty"), csv);
   };
 
   // Invoices grouped by status
@@ -275,7 +478,7 @@ export default function AdminReports() {
     { title: "Full Orders Export", desc: "Every order with customer, payment, and totals.", count: orders.length, label: "orders", onClick: exportFullOrders },
     { title: "Order Line Items", desc: "Per-item breakdown for COGS and margin analysis.", count: lineItemsCount, label: "line items", onClick: exportLineItems },
     { title: "Revenue Summary", desc: "Daily totals — revenue, COGS, profit, AOV.", count: revenueSummaryRows.length, label: "days", onClick: exportRevenueSummary },
-    { title: "Payments Report", desc: "Every payment with subtotals per method.", count: orders.length, label: "payments", onClick: exportPayments },
+    { title: "Payments Report", desc: "Every payment grouped by method with subtotals.", count: orders.length, label: "payments", onClick: exportPayments },
     { title: "Loyalty Program Report", desc: "Customer stamps, tiers, rewards, lifetime activity.", count: loyaltyCustomers.length, label: "customers", onClick: exportLoyalty },
   ];
 
@@ -405,7 +608,7 @@ function OrderInvoiceRow({ order, productMap }: { order: any; productMap: Map<st
           <div><span className="text-muted-foreground">Phone:</span> {order.customer_phone}</div>
           <div><span className="text-muted-foreground">Email:</span> {order.customer_email ?? "—"}</div>
           <div><span className="text-muted-foreground">Type:</span> {order.delivery_type}</div>
-          <div><span className="text-muted-foreground">Payment:</span> {order.payment_method} ({order.payment_status})</div>
+          <div><span className="text-muted-foreground">Payment:</span> {normalizePaymentMethod(order.payment_method)} ({order.payment_status})</div>
           {order.delivery_address && <div className="md:col-span-2"><span className="text-muted-foreground">Address:</span> {order.delivery_address}</div>}
         </div>
         <div className="space-y-1 pt-1">
