@@ -16,6 +16,7 @@ import AdminContacts from "@/components/admin/AdminContacts";
 import AdminPages from "@/components/admin/AdminPages";
 import AdminHeaderFooter from "@/components/admin/AdminHeaderFooter";
 import AdminLoyalty from "@/components/admin/AdminLoyalty";
+import AdminReports from "@/components/admin/AdminReports";
 
 const PASSKEY = "5309";
 
@@ -60,6 +61,7 @@ export default function Admin() {
             <TabsTrigger value="dashboard" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Dashboard</TabsTrigger>
             <TabsTrigger value="products" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Products</TabsTrigger>
             <TabsTrigger value="orders" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Orders</TabsTrigger>
+            <TabsTrigger value="reports" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Reports</TabsTrigger>
             <TabsTrigger value="specials" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Specials</TabsTrigger>
             <TabsTrigger value="payments" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Payments</TabsTrigger>
             <TabsTrigger value="pages" className="text-[13px] md:text-sm whitespace-nowrap min-h-[44px] px-4">Pages</TabsTrigger>
@@ -76,6 +78,7 @@ export default function Admin() {
         <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
         <TabsContent value="products"><AdminProducts /></TabsContent>
         <TabsContent value="orders"><AdminOrders /></TabsContent>
+        <TabsContent value="reports"><AdminReports /></TabsContent>
         <TabsContent value="specials"><AdminSpecials /></TabsContent>
         <TabsContent value="payments"><AdminPayments /></TabsContent>
         <TabsContent value="pages"><AdminPages /></TabsContent>
