@@ -64,7 +64,11 @@ function getInitials(name: string) {
 
 const AVATAR_COLORS = ["bg-blue-500/20 text-blue-600", "bg-green-500/20 text-green-600", "bg-yellow-500/20 text-yellow-600", "bg-destructive/20 text-destructive", "bg-purple-500/20 text-purple-600", "bg-cyan-500/20 text-cyan-600"];
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  onJumpToPendingOrders?: () => void;
+}
+
+export default function AdminDashboard({ onJumpToPendingOrders }: AdminDashboardProps = {}) {
   const [dateRange, setDateRange] = useState("all");
   const isMobile = useIsMobile();
 
