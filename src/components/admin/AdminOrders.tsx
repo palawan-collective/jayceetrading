@@ -145,11 +145,11 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
 
   const statusColor = (s: string) => {
     switch (s) {
-      case "completed": return "bg-green-500/20 text-green-500";
-      case "cancelled": return "bg-destructive/20 text-destructive";
-      case "ready": return "bg-blue-500/20 text-blue-500";
-      case "confirmed": return "bg-yellow-500/20 text-yellow-500";
-      default: return "bg-primary/20 text-primary";
+      case "completed": return "bg-[hsl(220,9%,46%)]/20 text-[hsl(220,9%,46%)] dark:text-[hsl(220,9%,75%)]";
+      case "cancelled": return "bg-[hsl(0,72%,51%)]/20 text-[hsl(0,72%,51%)]";
+      case "ready": return "bg-[hsl(160,84%,39%)]/20 text-[hsl(160,84%,39%)]";
+      case "confirmed": return "bg-[hsl(217,91%,60%)]/20 text-[hsl(217,91%,60%)]";
+      default: return "bg-[hsl(24,95%,53%)]/20 text-[hsl(24,95%,53%)]";
     }
   };
 
