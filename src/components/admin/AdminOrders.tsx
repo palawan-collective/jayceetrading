@@ -165,14 +165,14 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
   };
 
   const sendEmail = (order: any, type: "confirm" | "ready") => {
-    const template = type === "confirm"
-      ? (settings?.confirmation_email_template || "Dear {name}, your order #{id} has been confirmed. Total: {total}.")
-      : (settings?.ready_email_template || "Dear {name}, your order #{id} is now READY for {delivery_type}.");
-    const subject = type === "confirm" ? `Order ${order.id} Confirmed` : `Order ${order.id} Ready`;
-    const body = encodeURIComponent(fillTemplate(template, order));
-    window.open(`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${body}`, "_blank");
+    if (!order.customer_email) return;
+    setEmailLoading({ id: order.id, type });
+    const { subject, body } = type === "confirm" ? buildConfirmEmail(order) : buildReadyEmail(order);
+    window.open(`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
     const emailUpdate = type === "confirm" ? { email_confirmation_sent: true } : { email_ready_sent: true };
     supabase.from("orders").update(emailUpdate).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+    toast.success("Gmail compose opened—click Send!");
+    setTimeout(() => setEmailLoading(null), 2000);
   };
 
   const statusColor = (s: string) => {
