@@ -21,7 +21,7 @@ const BRAND = {
   subtotalAmber: "FFFEF3C7",
 };
 
-const BUSINESS_NAME = "JAYCEE TRADING & SERVICES";
+const BUSINESS_NAME = "JayCee Trading & Services";
 const BUSINESS_CONTACT =
   "Zone 2 Abanico Rd, Puerto Princesa City, Palawan  |  +63977 116 7555  |  tradingjaycee@gmail.com";
 
@@ -175,15 +175,30 @@ function computeWidths(
 }
 
 async function tryLoadLogoBuffer(): Promise<{ buffer: ArrayBuffer; ext: "png" | "jpeg" } | null> {
-  for (const [path, ext] of [["/jaycee-logo.png", "png"], ["/jaycee-logo.jpg", "jpeg"]] as const) {
+  const candidates: Array<[string, "png" | "jpeg"]> = [
+    ["/jaycee-logo.png", "png"],
+    ["/jaycee-logo.jpg", "jpeg"],
+    ["/jaycee-logo.jpeg", "jpeg"],
+  ];
+  for (const [path, ext] of candidates) {
     try {
-      const res = await fetch(path);
-      if (!res.ok) continue;
+      const res = await fetch(path, { cache: "no-cache" });
+      if (!res.ok) {
+        console.warn(`[xlsx-export] Logo fetch ${path} → ${res.status}`);
+        continue;
+      }
       const buffer = await res.arrayBuffer();
+      if (buffer.byteLength === 0) {
+        console.warn(`[xlsx-export] Logo at ${path} is empty`);
+        continue;
+      }
+      console.info(`[xlsx-export] Loaded logo from ${path} (${buffer.byteLength} bytes)`);
       return { buffer, ext };
-    } catch { /* try next */ }
+    } catch (e) {
+      console.warn(`[xlsx-export] Logo fetch ${path} threw`, e);
+    }
   }
-  console.warn("[xlsx-export] Logo not found at /jaycee-logo.png or /jaycee-logo.jpg");
+  console.warn("[xlsx-export] Logo not found at any candidate path");
   return null;
 }
 
@@ -264,18 +279,25 @@ export async function buildBrandedWorkbook(opts: BuildBrandedWorkbookOptions): P
   r6.fill = fillSolid(BRAND.white);
   ws.getRow(6).height = 10;
 
-  // ---- Logo (top-right H1:I5 if there are >= 9 columns; else skip gracefully) ----
+  // ---- Logo (top-right, fixed pixel size for cross-app compatibility) ----
   const logo = await tryLoadLogoBuffer();
   if (logo && colCount >= 2) {
     try {
-      const imgId = wb.addImage({ buffer: logo.buffer as any, extension: logo.ext });
-      const startCol = Math.max(7, colCount - 2);
-      const endCol = startCol + 2;
+      // ExcelJS expects a Uint8Array/Buffer for `buffer`. ArrayBuffer alone
+      // can be silently dropped by some readers (notably Google Sheets).
+      const imgId = wb.addImage({
+        buffer: new Uint8Array(logo.buffer) as any,
+        extension: logo.ext,
+      });
+      // Anchor top-right using ext (pixel dims) — most reliable across Excel,
+      // LibreOffice, and Google Sheets. ~110px wide x 90px tall.
+      const anchorCol = Math.max(0, colCount - 2); // 0-indexed
       ws.addImage(imgId, {
-        tl: { col: startCol, row: 0 } as any,
-        br: { col: endCol, row: 5 } as any,
+        tl: { col: anchorCol, row: 0 } as any,
+        ext: { width: 110, height: 90 },
         editAs: "oneCell",
       });
+      console.info("[xlsx-export] Logo embedded at column", anchorCol + 1);
     } catch (e) {
       console.warn("[xlsx-export] Failed to embed logo:", e);
     }
