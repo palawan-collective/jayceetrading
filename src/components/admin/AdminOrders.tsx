@@ -8,7 +8,38 @@ import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, Chevro
 import { toast } from "sonner";
 import { useState, useMemo, useEffect } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import StampAwardModal from "./StampAwardModal";
+
+const PICKUP_ADDRESS = "JayCee Trading & Services\nZone 2 Abanico Rd, Puerto Princesa City, Palawan";
+const PICKUP_MAPS = "https://maps.app.goo.gl/64qx6xVXejQdEJfx6";
+const WHATSAPP_CONTACT = "+639771167555";
+
+function buildConfirmEmail(order: any) {
+  const invoiceNum = order.invoice_number || order.id;
+  const items = (order.items as any[]) || [];
+  const itemLines = items.map(i => `${i.name} x${i.quantity} @ ₱${Number(i.price).toFixed(2)} = ₱${(Number(i.price) * i.quantity).toFixed(2)}`).join("\n");
+  const isPickup = order.delivery_type !== "delivery";
+  const fulfillmentBlock = isPickup
+    ? `Ready for pickup at:\n${PICKUP_ADDRESS}\nDirections: ${PICKUP_MAPS}\n\nPlease bring valid ID. Open until 6:00 PM.`
+    : `Delivering to:\n${order.delivery_address || "(address on file)"}\nRider ETA: 30-45 minutes`;
+  const subject = `JayCee Order #${invoiceNum} - Confirmed & Preparing! ✅`;
+  const body = `Hi ${order.customer_name},\n\nYour order has been confirmed and we're preparing it now!\n\nORDER DETAILS:\nInvoice: #${invoiceNum}\n${itemLines}\nSubtotal: ₱${Number(order.subtotal ?? order.total_price).toFixed(2)}\nGrand Total: ₱${Number(order.total_price).toFixed(2)}\nPayment: ${order.payment_method}\n\n${fulfillmentBlock}\n\nView full invoice: ${window.location.origin}/invoice/${invoiceNum}\n\nQuestions? Reply here or WhatsApp ${WHATSAPP_CONTACT}.\n\nBest,\nJayCee Trading & Services`;
+  return { subject, body };
+}
+
+function buildReadyEmail(order: any) {
+  const invoiceNum = order.invoice_number || order.id;
+  const items = (order.items as any[]) || [];
+  const itemSummary = items.map(i => `${i.name} x${i.quantity}`).join(", ");
+  const isPickup = order.delivery_type !== "delivery";
+  const fulfillmentBlock = isPickup
+    ? `Your order is ready for pickup at:\n${PICKUP_ADDRESS}\nGoogle Maps: ${PICKUP_MAPS}\n\nPlease collect at your earliest convenience. Open until 6:00 PM.\nBring valid ID and order number: #${invoiceNum}`
+    : `Your order is out for delivery!\n\nAddress: ${order.delivery_address || "(address on file)"}\nRider contact: [Add rider number if available]\nEstimated arrival: 30-45 minutes`;
+  const subject = `JayCee Order #${invoiceNum} - Ready for ${isPickup ? "pickup" : "delivery"}! 🎉`;
+  const body = `Hi ${order.customer_name},\n\nGreat news! Your order is ready!\n\n${fulfillmentBlock}\n\nORDER SUMMARY:\n${itemSummary}\nTotal: ₱${Number(order.total_price).toFixed(2)}\nPayment: ${order.payment_method}\n\nView invoice: ${window.location.origin}/invoice/${invoiceNum}\n\nThanks for choosing JayCee!`;
+  return { subject, body };
+}
 
 function relativeTime(date: string) {
   const diff = Date.now() - new Date(date).getTime();
@@ -33,6 +64,7 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [stampOrder, setStampOrder] = useState<any>(null);
   const [, setTick] = useState(0);
+  const [emailLoading, setEmailLoading] = useState<{ id: string; type: "confirm" | "ready" } | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setTick(x => x + 1), 30000);
@@ -133,14 +165,14 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
   };
 
   const sendEmail = (order: any, type: "confirm" | "ready") => {
-    const template = type === "confirm"
-      ? (settings?.confirmation_email_template || "Dear {name}, your order #{id} has been confirmed. Total: {total}.")
-      : (settings?.ready_email_template || "Dear {name}, your order #{id} is now READY for {delivery_type}.");
-    const subject = type === "confirm" ? `Order ${order.id} Confirmed` : `Order ${order.id} Ready`;
-    const body = encodeURIComponent(fillTemplate(template, order));
-    window.open(`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${body}`, "_blank");
+    if (!order.customer_email) return;
+    setEmailLoading({ id: order.id, type });
+    const { subject, body } = type === "confirm" ? buildConfirmEmail(order) : buildReadyEmail(order);
+    window.open(`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
     const emailUpdate = type === "confirm" ? { email_confirmation_sent: true } : { email_ready_sent: true };
     supabase.from("orders").update(emailUpdate).eq("id", order.id).then(() => qc.invalidateQueries({ queryKey: ["admin-orders"] }));
+    toast.success("Gmail compose opened—click Send!");
+    setTimeout(() => setEmailLoading(null), 2000);
   };
 
   const statusColor = (s: string) => {
@@ -282,16 +314,32 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
                   <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendWhatsApp(o, "ready")} disabled={o.whatsapp_ready_sent}>
                     <MessageCircle className="h-3 w-3" /> WA Ready {o.whatsapp_ready_sent && "✓"}
                   </Button>
-                  {o.customer_email && (
-                    <>
-                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendEmail(o, "confirm")} disabled={o.email_confirmation_sent}>
-                        <Mail className="h-3 w-3" /> Email Confirm {o.email_confirmation_sent && "✓"}
+                  {(["confirm", "ready"] as const).map(type => {
+                    const sent = type === "confirm" ? o.email_confirmation_sent : o.email_ready_sent;
+                    const loading = emailLoading?.id === o.id && emailLoading?.type === type;
+                    const noEmail = !o.customer_email;
+                    const label = loading ? "Opening Gmail..." : `Email ${type === "confirm" ? "Confirm" : "Ready"}`;
+                    const btn = (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs"
+                        onClick={() => sendEmail(o, type)}
+                        disabled={sent || noEmail || loading}
+                      >
+                        <Mail className="h-3 w-3" /> {label} {sent && "✓"}
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendEmail(o, "ready")} disabled={o.email_ready_sent}>
-                        <Mail className="h-3 w-3" /> Email Ready {o.email_ready_sent && "✓"}
-                      </Button>
-                    </>
-                  )}
+                    );
+                    if (noEmail) {
+                      return (
+                        <Tooltip key={type}>
+                          <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
+                          <TooltipContent>No email on file</TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+                    return <span key={type}>{btn}</span>;
+                  })}
                 </div>
 
                 {/* Status Actions */}
