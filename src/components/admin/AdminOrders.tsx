@@ -315,7 +315,8 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
             )}
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
       {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No orders found</p>}
 
       <StampAwardModal order={stampOrder} open={!!stampOrder} onClose={() => setStampOrder(null)} />
