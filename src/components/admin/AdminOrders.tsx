@@ -189,35 +189,45 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
           className={isNew ? "border-l-4 border-l-[hsl(24,95%,53%)] bg-[hsl(45,93%,88%)]/30 dark:bg-[hsl(24,95%,53%)]/5" : ""}
         >
           <CardContent className="p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
-              <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2 cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
+              <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-mono text-xs truncate">{o.id}</p>
+                  <p className="font-mono text-xs truncate max-w-full">{o.id}</p>
                   {isNew && (
                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[hsl(24,95%,53%)] text-white animate-alert-pulse">NEW</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                  <p className="font-medium">{o.customer_name}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium break-words">{o.customer_name}</p>
                   <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${isPickup ? "bg-[hsl(217,91%,60%)]/20 text-[hsl(217,91%,60%)]" : "bg-[hsl(270,91%,65%)]/20 text-[hsl(270,91%,65%)]"}`}>
                     {isPickup ? <Store className="h-2.5 w-2.5" /> : <Truck className="h-2.5 w-2.5" />}
                     {isPickup ? "PICKUP" : "DELIVERY"}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <Phone className="h-3 w-3" /> {o.customer_phone}
-                  {o.customer_email && <> · <Mail className="h-3 w-3" /> {o.customer_email}</>}
+                <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap break-all">
+                  <Phone className="h-3 w-3 shrink-0" /> {o.customer_phone}
                 </p>
-                <p className="text-xs text-muted-foreground">{o.payment_method} · {new Date(o.created_at).toLocaleString()}</p>
-                <p className={`text-xs mt-0.5 ${isDelayed ? "text-[hsl(0,72%,51%)] font-semibold" : "text-muted-foreground"}`}>
+                {o.customer_email && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap break-all max-w-full">
+                    <Mail className="h-3 w-3 shrink-0" /> <span className="break-all">{o.customer_email}</span>
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground break-words">{o.payment_method} · {new Date(o.created_at).toLocaleString()}</p>
+                <p className={`text-xs ${isDelayed ? "text-[hsl(0,72%,51%)] font-semibold" : "text-muted-foreground"}`}>
                   {isDelayed ? <><AlertTriangle className="inline h-3 w-3 mr-0.5" />Waiting {ageMins} min</> : relativeTime(o.created_at)}
                 </p>
+                {/* Mobile-only: status badges on their own row */}
+                <div className="flex flex-wrap gap-1 sm:hidden pt-1">
+                  <Badge className={statusColor(o.order_status)}>{o.order_status}</Badge>
+                  <Badge className={paymentStatusColor(o.payment_status)}>{o.payment_status}</Badge>
+                </div>
               </div>
-              <div className="text-right flex items-center gap-2">
+              <div className="text-right flex items-center gap-2 shrink-0">
                 <div>
                   <p className="font-bold">₱{Number(o.total_price).toFixed(2)}</p>
                   <p className="text-xs text-[hsl(160,84%,39%)]">+₱{Number(o.profit).toFixed(2)}</p>
-                  <div className="flex flex-wrap gap-1 justify-end">
+                  {/* Desktop-only: badges next to price */}
+                  <div className="hidden sm:flex flex-wrap gap-1 justify-end mt-1">
                     <Badge className={statusColor(o.order_status)}>{o.order_status}</Badge>
                     <Badge className={paymentStatusColor(o.payment_status)}>{o.payment_status}</Badge>
                   </div>
