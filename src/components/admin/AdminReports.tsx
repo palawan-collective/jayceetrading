@@ -15,6 +15,10 @@ import {
   buildBrandedCSV, downloadCSV, brandedFilename, normalizePaymentMethod,
 } from "@/lib/csv-export";
 import {
+  buildBrandedWorkbook, downloadWorkbook, brandedXlsxFilename,
+  type ColType, type Section,
+} from "@/lib/xlsx-export";
+import {
   fetchAllOrders, fetchAllProducts, fetchAllLoyaltyCustomers,
   fetchLoyaltyStampLog, fetchLoyaltyRewards,
 } from "@/lib/reports-queries";
