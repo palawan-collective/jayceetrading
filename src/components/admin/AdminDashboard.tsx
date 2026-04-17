@@ -247,6 +247,27 @@ export default function AdminDashboard({ onJumpToPendingOrders }: AdminDashboard
 
   return (
     <div className="space-y-4">
+      {/* Pending Orders Alert */}
+      {statusCounts.pending > 0 && (
+        <Card
+          onClick={onJumpToPendingOrders}
+          className="cursor-pointer border-[hsl(24,95%,53%)] bg-[hsl(24,95%,53%)]/10 animate-alert-pulse hover:bg-[hsl(24,95%,53%)]/20 transition-colors"
+        >
+          <CardContent className="p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-8 w-8 text-[hsl(24,95%,53%)]" />
+              <div>
+                <p className="text-3xl font-bold text-[hsl(24,95%,53%)] leading-none">{statusCounts.pending}</p>
+                <p className="text-xs text-muted-foreground mt-1">pending order{statusCounts.pending === 1 ? "" : "s"} need attention</p>
+              </div>
+            </div>
+            <Button variant="default" size="sm" className="bg-[hsl(24,95%,53%)] hover:bg-[hsl(24,95%,48%)] text-white">
+              View Now →
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Date Filter */}
       <Select value={dateRange} onValueChange={setDateRange}>
         <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
