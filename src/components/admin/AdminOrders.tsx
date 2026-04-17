@@ -64,6 +64,7 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [stampOrder, setStampOrder] = useState<any>(null);
   const [, setTick] = useState(0);
+  const [emailLoading, setEmailLoading] = useState<{ id: string; type: "confirm" | "ready" } | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setTick(x => x + 1), 30000);
