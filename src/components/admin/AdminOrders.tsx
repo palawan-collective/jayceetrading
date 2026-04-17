@@ -314,16 +314,32 @@ export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = 
                   <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendWhatsApp(o, "ready")} disabled={o.whatsapp_ready_sent}>
                     <MessageCircle className="h-3 w-3" /> WA Ready {o.whatsapp_ready_sent && "✓"}
                   </Button>
-                  {o.customer_email && (
-                    <>
-                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendEmail(o, "confirm")} disabled={o.email_confirmation_sent}>
-                        <Mail className="h-3 w-3" /> Email Confirm {o.email_confirmation_sent && "✓"}
+                  {(["confirm", "ready"] as const).map(type => {
+                    const sent = type === "confirm" ? o.email_confirmation_sent : o.email_ready_sent;
+                    const loading = emailLoading?.id === o.id && emailLoading?.type === type;
+                    const noEmail = !o.customer_email;
+                    const label = loading ? "Opening Gmail..." : `Email ${type === "confirm" ? "Confirm" : "Ready"}`;
+                    const btn = (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs"
+                        onClick={() => sendEmail(o, type)}
+                        disabled={sent || noEmail || loading}
+                      >
+                        <Mail className="h-3 w-3" /> {label} {sent && "✓"}
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => sendEmail(o, "ready")} disabled={o.email_ready_sent}>
-                        <Mail className="h-3 w-3" /> Email Ready {o.email_ready_sent && "✓"}
-                      </Button>
-                    </>
-                  )}
+                    );
+                    if (noEmail) {
+                      return (
+                        <Tooltip key={type}>
+                          <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
+                          <TooltipContent>No email on file</TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+                    return <span key={type}>{btn}</span>;
+                  })}
                 </div>
 
                 {/* Status Actions */}
