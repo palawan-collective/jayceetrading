@@ -271,8 +271,8 @@ export async function buildBrandedWorkbook(opts: BuildBrandedWorkbookOptions): P
       const startCol = Math.max(7, colCount - 2); // 0-indexed: column H is index 7
       const endCol = startCol + 2;
       ws.addImage(imgId, {
-        tl: { col: startCol, row: 0 },
-        br: { col: endCol, row: 5 },
+        tl: { col: startCol, row: 0 } as any,
+        br: { col: endCol, row: 5 } as any,
         editAs: "oneCell",
       });
     } catch (e) {
