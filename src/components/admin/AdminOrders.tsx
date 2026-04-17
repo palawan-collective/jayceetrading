@@ -4,19 +4,45 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star } from "lucide-react";
+import { MessageCircle, CheckCircle, XCircle, Clock, Mail, Search, Phone, ChevronDown, ChevronUp, DollarSign, ExternalLink, Star, Store, Truck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
 import StampAwardModal from "./StampAwardModal";
 
-export default function AdminOrders() {
+function relativeTime(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+interface AdminOrdersProps {
+  initialStatusFilter?: string;
+}
+
+export default function AdminOrders({ initialStatusFilter }: AdminOrdersProps = {}) {
   const qc = useQueryClient();
   const { data: settings } = useBusinessSettings();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [stampOrder, setStampOrder] = useState<any>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (initialStatusFilter && statusFilter === "all") setStatusFilter(initialStatusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStatusFilter]);
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
@@ -119,11 +145,11 @@ export default function AdminOrders() {
 
   const statusColor = (s: string) => {
     switch (s) {
-      case "completed": return "bg-green-500/20 text-green-500";
-      case "cancelled": return "bg-destructive/20 text-destructive";
-      case "ready": return "bg-blue-500/20 text-blue-500";
-      case "confirmed": return "bg-yellow-500/20 text-yellow-500";
-      default: return "bg-primary/20 text-primary";
+      case "completed": return "bg-[hsl(220,9%,46%)]/20 text-[hsl(220,9%,46%)] dark:text-[hsl(220,9%,75%)]";
+      case "cancelled": return "bg-[hsl(0,72%,51%)]/20 text-[hsl(0,72%,51%)]";
+      case "ready": return "bg-[hsl(160,84%,39%)]/20 text-[hsl(160,84%,39%)]";
+      case "confirmed": return "bg-[hsl(217,91%,60%)]/20 text-[hsl(217,91%,60%)]";
+      default: return "bg-[hsl(24,95%,53%)]/20 text-[hsl(24,95%,53%)]";
     }
   };
 
@@ -151,23 +177,46 @@ export default function AdminOrders() {
         <Input placeholder="Search by name, phone, or order ID..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
       </div>
 
-      {filtered.map(o => (
-        <Card key={o.id}>
+      {filtered.map(o => {
+        const ageMs = Date.now() - new Date(o.created_at).getTime();
+        const isNew = ageMs < 10 * 60 * 1000;
+        const isPickup = o.delivery_type !== "delivery";
+        const ageMins = Math.floor(ageMs / 60000);
+        const isDelayed = o.order_status === "pending" && ageMins > 15;
+        return (
+        <Card
+          key={o.id}
+          className={isNew ? "border-l-4 border-l-[hsl(24,95%,53%)] bg-[hsl(45,93%,88%)]/30 dark:bg-[hsl(24,95%,53%)]/5" : ""}
+        >
           <CardContent className="p-4 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
               <div className="min-w-0 flex-1">
-                <p className="font-mono text-xs truncate">{o.id}</p>
-                <p className="font-medium">{o.customer_name}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-mono text-xs truncate">{o.id}</p>
+                  {isNew && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[hsl(24,95%,53%)] text-white animate-alert-pulse">NEW</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <p className="font-medium">{o.customer_name}</p>
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${isPickup ? "bg-[hsl(217,91%,60%)]/20 text-[hsl(217,91%,60%)]" : "bg-[hsl(270,91%,65%)]/20 text-[hsl(270,91%,65%)]"}`}>
+                    {isPickup ? <Store className="h-2.5 w-2.5" /> : <Truck className="h-2.5 w-2.5" />}
+                    {isPickup ? "PICKUP" : "DELIVERY"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Phone className="h-3 w-3" /> {o.customer_phone}
                   {o.customer_email && <> · <Mail className="h-3 w-3" /> {o.customer_email}</>}
                 </p>
-                <p className="text-xs text-muted-foreground">{o.delivery_type} · {o.payment_method} · {new Date(o.created_at).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{o.payment_method} · {new Date(o.created_at).toLocaleString()}</p>
+                <p className={`text-xs mt-0.5 ${isDelayed ? "text-[hsl(0,72%,51%)] font-semibold" : "text-muted-foreground"}`}>
+                  {isDelayed ? <><AlertTriangle className="inline h-3 w-3 mr-0.5" />Waiting {ageMins} min</> : relativeTime(o.created_at)}
+                </p>
               </div>
               <div className="text-right flex items-center gap-2">
                 <div>
                   <p className="font-bold">₱{Number(o.total_price).toFixed(2)}</p>
-                  <p className="text-xs text-green-500">+₱{Number(o.profit).toFixed(2)}</p>
+                  <p className="text-xs text-[hsl(160,84%,39%)]">+₱{Number(o.profit).toFixed(2)}</p>
                   <div className="flex flex-wrap gap-1 justify-end">
                     <Badge className={statusColor(o.order_status)}>{o.order_status}</Badge>
                     <Badge className={paymentStatusColor(o.payment_status)}>{o.payment_status}</Badge>
@@ -266,7 +315,8 @@ export default function AdminOrders() {
             )}
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
       {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No orders found</p>}
 
       <StampAwardModal order={stampOrder} open={!!stampOrder} onClose={() => setStampOrder(null)} />
