@@ -95,7 +95,7 @@ export default function AdminReports() {
   }, [products]);
 
   // === Report 1: Full Orders ===
-  const exportFullOrders = () => {
+  const exportFullOrders = async () => {
     const headers = [
       "order_id", "invoice_number", "order_date", "order_time",
       "customer_name", "customer_phone", "customer_email",
@@ -103,16 +103,25 @@ export default function AdminReports() {
       "delivery_address", "subtotal", "discount_amount", "loyalty_redeemed",
       "total", "notes", "items_summary",
     ];
-    let sumSubtotal = 0, sumDiscount = 0, sumLoyalty = 0, sumTotal = 0;
+    const columnTypes: Record<string, ColType> = {
+      order_id: "id", invoice_number: "id",
+      order_date: "date", order_time: "text",
+      customer_name: "text", customer_phone: "text", customer_email: "text",
+      order_status: "text", fulfillment_type: "text",
+      payment_method: "text", payment_status: "text",
+      delivery_address: "text",
+      subtotal: "money", discount_amount: "money",
+      loyalty_redeemed: "text", total: "money",
+      notes: "text", items_summary: "text",
+    };
+    let sumSubtotal = 0, sumDiscount = 0, sumTotal = 0;
     const rows = orders.map((o: any) => {
       const created = new Date(o.created_at);
       const subtotal = Number(o.subtotal ?? 0);
       const total = Number(o.total_price ?? 0);
       const discount = Math.max(0, subtotal - total);
-      const loyalty = o.reward_code_used ? 1 : 0;
       sumSubtotal += subtotal;
       sumDiscount += discount;
-      sumLoyalty += loyalty;
       sumTotal += total;
       return {
         order_id: o.id,
@@ -127,29 +136,29 @@ export default function AdminReports() {
         payment_method: normalizePaymentMethod(o.payment_method),
         payment_status: o.payment_status,
         delivery_address: o.delivery_type === "pickup" ? "" : (o.delivery_address ?? ""),
-        subtotal: subtotal.toFixed(2),
-        discount_amount: discount.toFixed(2),
+        subtotal,
+        discount_amount: discount,
         loyalty_redeemed: o.reward_code_used ?? "",
-        total: total.toFixed(2),
+        total,
         notes: "",
         items_summary: itemsSummary(Array.isArray(o.items) ? o.items : []),
       };
     });
 
-    const footerRows: any[][] = [
-      [],
-      [
-        "TOTALS", orders.length, "", "", "", "", "", "", "", "", "", "",
-        sumSubtotal.toFixed(2), sumDiscount.toFixed(2), sumLoyalty,
-        sumTotal.toFixed(2), "", "",
-      ],
-    ];
+    const totalsRow: Record<string, any> = {
+      order_id: "TOTALS",
+      invoice_number: `${orders.length} orders`,
+      subtotal: sumSubtotal,
+      discount_amount: sumDiscount,
+      total: sumTotal,
+    };
 
-    const csv = buildBrandedCSV({
+    const wb = await buildBrandedWorkbook({
+      sheetName: "Orders", tabColor: "F97316",
       reportName: "Full Orders Export",
-      range, headers, rows, footerRows,
+      range, headers, rows, totalsRow, columnTypes,
     });
-    downloadCSV(brandedFilename("full_orders"), csv);
+    await downloadWorkbook(wb, brandedXlsxFilename("full_orders"));
   };
 
   // === Report 2: Line Items ===
@@ -157,13 +166,22 @@ export default function AdminReports() {
     return orders.reduce((sum: number, o: any) => sum + (Array.isArray(o.items) ? o.items.length : 0), 0);
   }, [orders]);
 
-  const exportLineItems = () => {
+  const exportLineItems = async () => {
     const headers = [
       "order_id", "invoice_number", "customer_name", "order_date",
       "product_name", "category", "quantity",
       "unit_cost", "unit_price", "line_cost", "line_revenue",
       "line_gross_profit", "margin_percent",
     ];
+    const columnTypes: Record<string, ColType> = {
+      order_id: "id", invoice_number: "id",
+      customer_name: "text", order_date: "date",
+      product_name: "text", category: "text",
+      quantity: "count",
+      unit_cost: "money", unit_price: "money",
+      line_cost: "money", line_revenue: "money",
+      line_gross_profit: "money", margin_percent: "margin",
+    };
     const rows: any[] = [];
     let sumQty = 0, sumCost = 0, sumRev = 0, sumProfit = 0;
     orders.forEach((o: any) => {
@@ -191,31 +209,33 @@ export default function AdminReports() {
           product_name: name,
           category: it.category ?? product?.category ?? "",
           quantity: qty,
-          unit_cost: unitCost.toFixed(2),
-          unit_price: unitPrice.toFixed(2),
-          line_cost: lineCost.toFixed(2),
-          line_revenue: lineRev.toFixed(2),
-          line_gross_profit: lineProfit.toFixed(2),
-          margin_percent: margin.toFixed(2),
+          unit_cost: unitCost,
+          unit_price: unitPrice,
+          line_cost: lineCost,
+          line_revenue: lineRev,
+          line_gross_profit: lineProfit,
+          margin_percent: margin,
         });
       });
     });
 
-    const avgMargin = sumRev > 0 ? (sumProfit / sumRev * 100).toFixed(2) : "0.00";
-    const footerRows: any[][] = [
-      [],
-      [
-        "TOTALS", "", "", "", "", "", sumQty,
-        sumCost.toFixed(2), "", sumRev.toFixed(2),
-        sumProfit.toFixed(2), avgMargin,
-      ],
-    ];
+    const avgMargin = sumRev > 0 ? +(sumProfit / sumRev * 100).toFixed(2) : 0;
+    const totalsRow: Record<string, any> = {
+      order_id: "TOTALS",
+      quantity: sumQty,
+      unit_cost: sumCost,
+      line_cost: sumCost,
+      line_revenue: sumRev,
+      line_gross_profit: sumProfit,
+      margin_percent: avgMargin,
+    };
 
-    const csv = buildBrandedCSV({
+    const wb = await buildBrandedWorkbook({
+      sheetName: "Line Items", tabColor: "3B82F6",
       reportName: "Order Line Items",
-      range, headers, rows, footerRows,
+      range, headers, rows, totalsRow, columnTypes,
     });
-    downloadCSV(brandedFilename("line_items"), csv);
+    await downloadWorkbook(wb, brandedXlsxFilename("line_items"));
   };
 
   // === Report 3: Revenue Summary ===
@@ -246,28 +266,35 @@ export default function AdminReports() {
     return Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [orders, productMap]);
 
-  const exportRevenueSummary = () => {
+  const exportRevenueSummary = async () => {
     const headers = [
       "date", "order_count", "gross_revenue", "total_discounts",
       "total_cogs", "net_revenue", "gross_profit", "margin_percent",
       "avg_order_value",
     ];
+    const columnTypes: Record<string, ColType> = {
+      date: "date", order_count: "count",
+      gross_revenue: "money", total_discounts: "money",
+      total_cogs: "money", net_revenue: "money",
+      gross_profit: "money", margin_percent: "margin",
+      avg_order_value: "money",
+    };
     const rows = revenueSummaryRows.map(r => {
-      const margin = r.gross_revenue > 0 ? (r.gross_profit / r.gross_revenue * 100) : 0;
+      const margin = r.gross_revenue > 0 ? +(r.gross_profit / r.gross_revenue * 100).toFixed(1) : 0;
       return {
         date: r.date,
         order_count: r.order_count,
-        gross_revenue: r.gross_revenue.toFixed(2),
-        total_discounts: r.total_discounts.toFixed(2),
-        total_cogs: r.total_cogs.toFixed(2),
-        net_revenue: r.net_revenue.toFixed(2),
-        gross_profit: r.gross_profit.toFixed(2),
-        margin_percent: margin.toFixed(1),
-        avg_order_value: r.order_count ? (r.net_revenue / r.order_count).toFixed(2) : "0.00",
+        gross_revenue: r.gross_revenue,
+        total_discounts: r.total_discounts,
+        total_cogs: r.total_cogs,
+        net_revenue: r.net_revenue,
+        gross_profit: r.gross_profit,
+        margin_percent: margin,
+        avg_order_value: r.order_count ? +(r.net_revenue / r.order_count).toFixed(2) : 0,
       };
     });
 
-    const footerRows: any[][] = [];
+    let totalsRow: Record<string, any> | undefined;
     if (revenueSummaryRows.length) {
       const totals = revenueSummaryRows.reduce((acc, r) => ({
         order_count: acc.order_count + r.order_count,
@@ -277,21 +304,21 @@ export default function AdminReports() {
         net_revenue: acc.net_revenue + r.net_revenue,
         gross_profit: acc.gross_profit + r.gross_profit,
       }), { order_count: 0, gross_revenue: 0, total_discounts: 0, total_cogs: 0, net_revenue: 0, gross_profit: 0 });
-      const totalMargin = totals.gross_revenue > 0 ? (totals.gross_profit / totals.gross_revenue * 100) : 0;
-      footerRows.push([]);
-      footerRows.push([
-        "TOTAL", totals.order_count,
-        totals.gross_revenue.toFixed(2),
-        totals.total_discounts.toFixed(2),
-        totals.total_cogs.toFixed(2),
-        totals.net_revenue.toFixed(2),
-        totals.gross_profit.toFixed(2),
-        totalMargin.toFixed(1),
-        totals.order_count ? (totals.net_revenue / totals.order_count).toFixed(2) : "0.00",
-      ]);
+      const totalMargin = totals.gross_revenue > 0 ? +(totals.gross_profit / totals.gross_revenue * 100).toFixed(1) : 0;
+      totalsRow = {
+        date: "TOTAL",
+        order_count: totals.order_count,
+        gross_revenue: totals.gross_revenue,
+        total_discounts: totals.total_discounts,
+        total_cogs: totals.total_cogs,
+        net_revenue: totals.net_revenue,
+        gross_profit: totals.gross_profit,
+        margin_percent: totalMargin,
+        avg_order_value: totals.order_count ? +(totals.net_revenue / totals.order_count).toFixed(2) : 0,
+      };
     }
 
-    // Payment method breakdown
+    // Payment method breakdown section
     const byMethod = new Map<string, { count: number; total: number }>();
     orders.forEach((o: any) => {
       const m = normalizePaymentMethod(o.payment_method);
@@ -300,30 +327,50 @@ export default function AdminReports() {
       cur.total += Number(o.total_price ?? 0);
       byMethod.set(m, cur);
     });
+
+    const extraSections: Section[] = [];
     if (byMethod.size > 0) {
-      footerRows.push([]);
-      footerRows.push(["PAYMENT METHOD BREAKDOWN"]);
-      footerRows.push(["payment_method", "order_count", "total_amount"]);
+      extraSections.push({ type: "spacer" });
+      extraSections.push({ type: "banner", text: "PAYMENT METHOD BREAKDOWN" });
+      extraSections.push({ type: "subheader", headers: ["Payment Method", "Order Count", "Total Amount"] });
+      let grandCount = 0, grandTotal = 0;
       Array.from(byMethod.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .forEach(([m, v]) => {
-          footerRows.push([m, v.count, v.total.toFixed(2)]);
+          grandCount += v.count;
+          grandTotal += v.total;
+          extraSections.push({
+            type: "row", style: "data",
+            cells: [m, v.count, v.total],
+            columnTypes: ["text", "count", "money"],
+          });
         });
+      extraSections.push({
+        type: "row", style: "grand_total",
+        cells: ["GRAND TOTAL", grandCount, grandTotal],
+        columnTypes: ["text", "count", "money"],
+      });
     }
 
-    const csv = buildBrandedCSV({
+    const wb = await buildBrandedWorkbook({
+      sheetName: "Revenue", tabColor: "10B981",
       reportName: "Revenue Summary",
-      range, headers, rows, footerRows,
+      range, headers, rows, totalsRow, extraSections, columnTypes,
     });
-    downloadCSV(brandedFilename("revenue_summary"), csv);
+    await downloadWorkbook(wb, brandedXlsxFilename("revenue_summary"));
   };
 
   // === Report 4: Payments ===
-  const exportPayments = () => {
+  const exportPayments = async () => {
     const headers = [
       "order_id", "order_date", "customer_name",
       "payment_method", "amount", "payment_status",
     ];
+    const columnTypes: Record<string, ColType> = {
+      order_id: "id", order_date: "date",
+      customer_name: "text", payment_method: "text",
+      amount: "money", payment_status: "text",
+    };
 
     const enriched = orders.map((o: any) => ({
       order_id: o.id,
@@ -339,8 +386,12 @@ export default function AdminReports() {
       return a.order_date.localeCompare(b.order_date);
     });
 
-    const rows: Record<string, any>[] = [];
-    const footerRows: any[][] = [];
+    // Group; emit data rows + per-method subtotals via extraSections
+    // To keep alternating-stripe simplicity, put ALL data in extraSections.
+    const rows: any[] = []; // keep main table empty so subtotal rows interleave naturally
+    const extraSections: Section[] = [];
+    const colTypesArr: ColType[] = ["id", "date", "text", "text", "money", "text"];
+
     let currentMethod: string | null = null;
     let methodSum = 0;
     let methodCount = 0;
@@ -348,20 +399,18 @@ export default function AdminReports() {
     let grandCount = 0;
 
     const flushSubtotal = () => {
-      if (currentMethod !== null) {
-        footerRows.push([]); // spacer not ideal mid-rows; use inline rows instead
+      if (currentMethod !== null && methodCount > 0) {
+        extraSections.push({
+          type: "row", style: "subtotal",
+          cells: ["", "", "", `${currentMethod} Subtotal`, methodSum, `${methodCount} order${methodCount !== 1 ? "s" : ""}`],
+          columnTypes: colTypesArr,
+        });
       }
     };
 
-    // We want subtotals inline between groups, so build rows directly
-    enriched.forEach((r, i) => {
+    enriched.forEach((r) => {
       if (currentMethod !== null && r.payment_method !== currentMethod) {
-        rows.push({
-          order_id: "SUBTOTAL", order_date: "", customer_name: "",
-          payment_method: currentMethod, amount: methodSum.toFixed(2),
-          payment_status: `${methodCount} order${methodCount !== 1 ? "s" : ""}`,
-        });
-        rows.push({ order_id: "", order_date: "", customer_name: "", payment_method: "", amount: "", payment_status: "" });
+        flushSubtotal();
         methodSum = 0;
         methodCount = 0;
       }
@@ -370,46 +419,45 @@ export default function AdminReports() {
       methodCount += 1;
       grandTotal += r.amount;
       grandCount += 1;
-      rows.push({
-        order_id: r.order_id,
-        order_date: r.order_date,
-        customer_name: r.customer_name,
-        payment_method: r.payment_method,
-        amount: r.amount.toFixed(2),
-        payment_status: r.payment_status,
+      extraSections.push({
+        type: "row", style: "data",
+        cells: [r.order_id, r.order_date, r.customer_name, r.payment_method, r.amount, r.payment_status],
+        columnTypes: colTypesArr,
       });
-      if (i === enriched.length - 1 && currentMethod !== null) {
-        rows.push({
-          order_id: "SUBTOTAL", order_date: "", customer_name: "",
-          payment_method: currentMethod, amount: methodSum.toFixed(2),
-          payment_status: `${methodCount} order${methodCount !== 1 ? "s" : ""}`,
-        });
-      }
     });
+    flushSubtotal();
 
     if (grandCount > 0) {
-      footerRows.push([]);
-      footerRows.push([
-        "GRAND TOTAL", "", "", "", grandTotal.toFixed(2),
-        `${grandCount} order${grandCount !== 1 ? "s" : ""}`,
-      ]);
+      extraSections.push({
+        type: "row", style: "grand_total",
+        cells: ["GRAND TOTAL", "", "", "", grandTotal, `${grandCount} order${grandCount !== 1 ? "s" : ""}`],
+        columnTypes: colTypesArr,
+      });
     }
 
-    const csv = buildBrandedCSV({
+    const wb = await buildBrandedWorkbook({
+      sheetName: "Payments", tabColor: "A855F7",
       reportName: "Payments Report",
-      range, headers, rows, footerRows,
+      range, headers, rows, extraSections, columnTypes,
     });
-    downloadCSV(brandedFilename("payments"), csv);
+    await downloadWorkbook(wb, brandedXlsxFilename("payments"));
   };
 
   // === Report 5: Loyalty ===
-  const exportLoyalty = () => {
+  const exportLoyalty = async () => {
     const headers = [
       "customer_name", "customer_phone", "tier", "status",
       "stamps_earned_period", "rewards_claimed_period",
       "lifetime_stamps", "next_reward_at",
       "total_orders", "total_spent",
     ];
+    const columnTypes: Record<string, ColType> = {
+      customer_name: "text", customer_phone: "text",
+      tier: "text", status: "text",
+      stamps_earned_period: "count", rewards_claimed_period: "count",
+      lifetime_stamps: "count", next_reward_at: "count",
+      total_orders: "count", total_spent: "money",
+    };
 
     const stampsByCustomer = new Map<string, number>();
     stampLog.forEach((s: any) => {
@@ -437,34 +485,38 @@ export default function AdminReports() {
           lifetime_stamps: lifetime,
           next_reward_at: nextReward,
           total_orders: c.total_orders ?? 0,
-          total_spent: Number(c.total_spent ?? 0).toFixed(2),
+          total_spent: Number(c.total_spent ?? 0),
           _lifetime_sort: lifetime,
-          _spent_sort: Number(c.total_spent ?? 0),
         };
       })
       .sort((a, b) => b._lifetime_sort - a._lifetime_sort)
-      .map(({ _lifetime_sort, _spent_sort, ...rest }) => rest);
+      .map(({ _lifetime_sort, ...rest }) => rest);
 
     const totals = rows.reduce((acc, r) => ({
       stamps: acc.stamps + Number(r.stamps_earned_period ?? 0),
+      rewards: acc.rewards + Number(r.rewards_claimed_period ?? 0),
       lifetime: acc.lifetime + Number(r.lifetime_stamps ?? 0),
-      spent: acc.spent + parseFloat(String(r.total_spent ?? "0")),
-    }), { stamps: 0, lifetime: 0, spent: 0 });
+      orders: acc.orders + Number(r.total_orders ?? 0),
+      spent: acc.spent + Number(r.total_spent ?? 0),
+    }), { stamps: 0, rewards: 0, lifetime: 0, orders: 0, spent: 0 });
 
-    const footerRows: any[][] = [
-      [],
-      [
-        "TOTALS", `${rows.length} customers`, "", "",
-        totals.stamps, "", totals.lifetime, "", "",
-        totals.spent.toFixed(2),
-      ],
-    ];
+    const totalsRow: Record<string, any> = {
+      customer_name: "TOTALS",
+      customer_phone: `${rows.length} customers`,
+      stamps_earned_period: totals.stamps,
+      rewards_claimed_period: totals.rewards,
+      lifetime_stamps: totals.lifetime,
+      next_reward_at: "",
+      total_orders: totals.orders,
+      total_spent: totals.spent,
+    };
 
-    const csv = buildBrandedCSV({
+    const wb = await buildBrandedWorkbook({
+      sheetName: "Loyalty", tabColor: "EAB308",
       reportName: "Loyalty Program Report",
-      range, headers, rows, footerRows,
+      range, headers, rows, totalsRow, columnTypes,
     });
-    downloadCSV(brandedFilename("loyalty"), csv);
+    await downloadWorkbook(wb, brandedXlsxFilename("loyalty"));
   };
 
   // Invoices grouped by status
