@@ -7,6 +7,7 @@ import { DollarSign, ShoppingCart, TrendingUp, Package, BarChart3, PieChart as P
 import { useState, useMemo, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { fetchAllOrders, fetchAllProducts } from "@/lib/reports-queries";
 
 const COLORS = ["hsl(var(--primary))", "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
@@ -68,21 +69,13 @@ export default function AdminDashboard() {
   const isMobile = useIsMobile();
 
   const { data: orders } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: ["admin-orders-full"],
+    queryFn: () => fetchAllOrders({ from: null, to: null }),
   });
 
   const { data: products } = useQuery({
-    queryKey: ["admin-products"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*");
-      if (error) throw error;
-      return data;
-    },
+    queryKey: ["admin-products-full"],
+    queryFn: fetchAllProducts,
   });
 
   const getDateFilter = useCallback(() => {
