@@ -35,7 +35,7 @@ export default function ProductCard({ product }: Props) {
           </Badge>
         )}
         {lowStock && !outOfStock && (
-          <Badge className="absolute top-2 right-2 bg-yellow-500/90 text-white gap-1">
+            <Badge className="absolute top-2 right-2 bg-warning text-warning-foreground gap-1">
             <AlertTriangle className="h-3 w-3" /> Low Stock
           </Badge>
         )}

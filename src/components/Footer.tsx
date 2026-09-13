@@ -1,100 +1,33 @@
-import { useFooterSettings, useBusinessSettings, useSocialLinks, useWebsitePages } from "@/hooks/use-settings";
-import { Facebook, Instagram, Twitter, Music, Mail, Phone, MapPin } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Link, useLocation } from "react-router-dom";
+import { Facebook, Instagram, Mail, MapPin, Phone, UtensilsCrossed } from "lucide-react";
+import { useBusinessSettings, useFooterSettings, useSocialLinks } from "@/hooks/use-settings";
 
-const iconMap: Record<string, any> = { facebook: Facebook, instagram: Instagram, twitter: Twitter, music: Music };
+const rangeLinks = ["Meats", "Dairy & Cheese", "Sausages & Cold Cuts", "Seafood", "Frozen & Fries", "Baking & Pantry"];
 
 export default function Footer() {
-  const { data: footer } = useFooterSettings();
+  const location = useLocation();
   const { data: business } = useBusinessSettings();
+  const { data: footer } = useFooterSettings();
   const { data: social } = useSocialLinks();
-  const { data: pages } = useWebsitePages();
-  const [email, setEmail] = useState("");
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    const { error } = await supabase.from("newsletter_subscribers").insert({ email });
-    if (error) {
-      if (error.code === "23505") toast.info("Already subscribed!");
-      else toast.error("Failed to subscribe");
-    } else {
-      toast.success("Subscribed!");
-      setEmail("");
-    }
-  };
+  if (location.pathname.startsWith("/admin")) return null;
 
   return (
-    <footer className="border-t border-border bg-card mt-auto">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div>
-            <h3 className="text-lg font-bold mb-3">{business?.business_name || "FoodOrder"}</h3>
-            {footer?.show_contact_info !== false && business && (
-              <div className="space-y-2 text-sm text-muted-foreground">
-                {business.business_phone && <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{business.business_phone}</p>}
-                {business.business_email && <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{business.business_email}</p>}
-                {business.business_address && <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{business.business_address}</p>}
-              </div>
-            )}
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold mb-3">Quick Links</h4>
-            <div className="space-y-2 text-sm">
-              <Link to="/" className="block text-muted-foreground hover:text-foreground">Order</Link>
-              {pages?.filter(p => p.slug !== "home").map(p => (
-                <Link key={p.slug} to={`/${p.slug}`} className="block text-muted-foreground hover:text-foreground">{p.title}</Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Social */}
-          {footer?.show_social_icons !== false && (
-            <div>
-              <h4 className="font-semibold mb-3">Follow Us</h4>
-              <div className="flex gap-3">
-                {social?.filter(s => s.is_enabled).map(s => {
-                  const Icon = iconMap[s.icon_name] || Mail;
-                  return (
-                    <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors">
-                      <Icon className="h-5 w-5" />
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Newsletter */}
-          {footer?.show_newsletter !== false && (
-            <div>
-              <h4 className="font-semibold mb-3">Newsletter</h4>
-              <p className="text-sm text-muted-foreground mb-3">Get updates on specials & new items</p>
-              <form onSubmit={handleSubscribe} className="flex gap-2">
-                <Input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="flex-1" />
-                <Button type="submit" size="sm">Join</Button>
-              </form>
-            </div>
-          )}
+    <footer className="border-t border-border bg-background">
+      <div className="container grid gap-10 px-4 py-12 md:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <Link to="/" className="flex items-center gap-2 font-heading font-bold">
+            {business?.logo_url ? <img src={business.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <UtensilsCrossed className="h-6 w-6 text-primary" />}
+            <span>{business?.business_name || "JayCee Trading & Services"}</span>
+          </Link>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">Quality food. Personal service. Proudly Palawan.</p>
+          {footer?.show_social_icons !== false && <div className="mt-5 flex gap-2">{social?.filter((item) => item.is_enabled).map((item) => { const Icon = item.icon_name === "facebook" ? Facebook : item.icon_name === "instagram" ? Instagram : Mail; return <a key={item.id} href={item.url} target="_blank" rel="noreferrer" aria-label={item.icon_name} className="grid h-9 w-9 place-items-center border border-border transition-colors hover:border-primary hover:text-primary"><Icon className="h-4 w-4" /></a>; })}</div>}
         </div>
-
-        <div className="border-t border-border mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>{footer?.copyright_text || business?.copyright_text || "© 2025"}</p>
-          {business?.google_maps_url && (
-            <a href={business.google_maps_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground">
-              <MapPin className="h-4 w-4" /> Find us on Maps
-            </a>
-          )}
-        </div>
+        <div><h2 className="text-xs font-bold uppercase text-primary">Explore</h2><nav className="mt-4 grid gap-2 text-sm"><a href="/#products" className="hover:text-primary">Products</a><a href="/#wholesale" className="hover:text-primary">Wholesale</a><a href="/#about" className="hover:text-primary">About</a><a href="/#delivery" className="hover:text-primary">Delivery</a><a href="/#faqs" className="hover:text-primary">FAQs</a><a href="/#contact" className="hover:text-primary">Contact</a></nav></div>
+        <div><h2 className="text-xs font-bold uppercase text-primary">Product range</h2><div className="mt-4 grid gap-2 text-sm">{rangeLinks.map((item) => <Link key={item} to={`/order?category=${encodeURIComponent(item)}`} className="hover:text-primary">{item}</Link>)}</div></div>
+        <div><h2 className="text-xs font-bold uppercase text-primary">Contact</h2><div className="mt-4 space-y-3 text-sm text-muted-foreground">{business?.business_address && <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{business.business_address}</p>}{business?.business_phone && <a href={`tel:${business.business_phone}`} className="flex gap-2 hover:text-foreground"><Phone className="h-4 w-4 shrink-0 text-primary" />{business.business_phone}</a>}{business?.business_email && <a href={`mailto:${business.business_email}`} className="flex break-all gap-2 hover:text-foreground"><Mail className="h-4 w-4 shrink-0 text-primary" />{business.business_email}</a>}</div></div>
       </div>
+      <div className="border-t border-border"><div className="container flex flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><p>{footer?.copyright_text || business?.copyright_text || "© 2026 JayCee Trading & Services. All rights reserved."}</p><div className="flex gap-5"><Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link><Link to="/track" className="hover:text-foreground">My Account</Link></div></div></div>
     </footer>
   );
 }

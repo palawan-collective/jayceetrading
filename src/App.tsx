@@ -8,7 +8,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import AdminLayout from "@/components/admin/AdminLayout";
-import Index from "./pages/Index";
+import HomePage from "./pages/HomePage";
+import OrderOnline from "./pages/OrderOnline";
 import Checkout from "./pages/Checkout";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./components/admin/AdminDashboard";
@@ -46,7 +47,8 @@ const App = () => (
             <main className="flex-1">
               <Routes>
                 {/* User Routes */}
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="/order" element={<OrderOnline />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/track" element={<TrackOrder />} />
