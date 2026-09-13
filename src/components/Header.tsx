@@ -38,7 +38,8 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between gap-3 px-4 lg:h-[4.5rem]">
         <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label="JayCee home">
           {header?.show_logo !== false && (business?.logo_url ? <img src={business.logo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <UtensilsCrossed className="h-6 w-6 shrink-0 text-primary" />)}
-          <span className="max-w-[12rem] truncate font-heading text-sm font-bold md:text-base">{business?.business_name || "JayCee Trading & Services"}</span>
+          <span className="font-heading text-base font-bold sm:hidden">JayCee</span>
+          <span className="hidden max-w-[13rem] truncate font-heading text-sm font-bold sm:block md:text-base">{business?.business_name || "JayCee Trading & Services"}</span>
         </Link>
 
         <nav className="hidden items-center gap-5 lg:flex" aria-label="Main navigation">

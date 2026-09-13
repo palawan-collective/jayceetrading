@@ -54,7 +54,7 @@ export default function HomePage() {
   return (
     <div className="marketing-page overflow-hidden">
       <section className="border-b border-border" aria-labelledby="home-title">
-        <div className="container grid min-h-[calc(100svh-4rem)] grid-cols-1 items-center gap-10 px-4 py-10 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-16">
+        <div className="container grid grid-cols-1 items-center gap-10 px-4 py-10 md:py-14 lg:min-h-[46rem] lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-16">
           <div className="order-2 max-w-xl space-y-8 lg:order-1">
             <div className="space-y-4">
               <p className="text-xs font-bold uppercase text-primary">Food supplier in Puerto Princesa · Since 2017</p>
@@ -71,7 +71,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="order-1 relative lg:order-2">
-            <div className="aspect-[4/3] overflow-hidden rounded-sm lg:aspect-[4/5]">
+            <div className="aspect-[4/3] overflow-hidden rounded-sm lg:aspect-[5/6]">
               <img src={heroImage} alt="JayCee staff carefully handing over a cold-storage food order" width={1600} height={1067} className="h-full w-full object-cover" />
             </div>
             <div className="absolute bottom-4 left-4 max-w-[15rem] border border-border bg-background p-4 shadow-sm md:bottom-6 md:left-6">
