@@ -1,3 +1,6 @@
-- [x] Build bespoke story-led homepage and separate /order shop
-- [x] Update public navigation, footer, fonts, and metadata
-- [x] Verify desktop/mobile and ordering handoff
+- [ ] Replace the current storefront direction with the supplied editorial retail layout adapted to JayCee
+- [ ] Keep /order as a complete, logical product catalogue with in-place category filtering
+- [ ] Remove mock imagery while preserving admin-uploadable image placeholders
+- [ ] Add an admin website editor for fonts, all homepage copy, section images, header/footer, and social links
+- [ ] Modernize high-impact admin data lists with desktop alignment and mobile stacking
+- [ ] Verify public and admin experiences on desktop and mobile
