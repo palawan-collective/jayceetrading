@@ -1,43 +1,36 @@
+# JayCee minimalist website and separate online store
 
-## Plan: Wire Email Confirm / Email Ready buttons to detailed mailto
+## Goal
+Turn the current storefront into a polished supplier website while keeping online ordering easy to reach and fully connected.
 
-Replace the current generic `sendEmail` flow in `src/components/admin/AdminOrders.tsx` with two purpose-built builders that produce the exact subject/body specified, open via `mailto:` in a new tab, and add lightweight UX polish.
+## Structure
+- Use `/` as the main JayCee website: brand story, product ranges, delivery, wholesale, location, FAQs, and contact paths.
+- Move the existing searchable product catalogue to `/order` without changing cart, checkout, inventory, pricing, account, or admin behavior.
+- Keep prominent **Order Online** actions in the header, opening section, category area, and final call-to-action.
+- Update internal links so the brand returns home while shopping links consistently open `/order`.
 
-### Scope (single file)
-- **Edit:** `src/components/admin/AdminOrders.tsx`
+## Visual direction
+- Follow the selected **Editorial heritage minimalist** composition, adapted to the actual food-supply business rather than copied literally.
+- Lock the chosen palette: white `#FFFFFF`, ink `#111827`, JayCee red `#DC1818`, and gold `#F3B61F`.
+- Use **Sora** for headings and **Manrope** for body text.
+- Build full-width, spacious sections with square-to-subtle-radius imagery, restrained borders, and minimal motion.
+- Keep the main website light and editorial; preserve semantic theme tokens so existing ordering and admin screens remain readable.
 
-### Changes
+## Homepage content
+- Refined header with Products, Wholesale, About, Delivery, FAQs, Contact, My Account, Cart, and a clear Order Online action.
+- Image-led opening focused on quality food supply and reliable delivery across Palawan.
+- Trust strip, six product-category highlights using real catalogue imagery, and a direct path into the store.
+- Separate “For Home” and “For Business” sections.
+- Food handling and delivery assurances, customer/review proof where data exists, local-team story, business location/contact details, FAQ preview, and final action band.
+- Responsive mobile navigation and layouts with no horizontal scrolling or overlapping text.
 
-1. **Add two body builders** inside the component:
-   - `buildConfirmEmail(order)` → returns `{ subject, body }` matching the Confirm template (order details, itemized lines with subtotals, payment, scheduled date, pickup vs delivery block with the JayCee Abanico Rd address + Google Maps link, invoice URL, WhatsApp contact).
-   - `buildReadyEmail(order)` → returns `{ subject, body }` matching the Ready template (pickup vs delivery block, condensed item summary, total, invoice URL).
-   - Both use real fields from the existing `orders` row: `customer_name`, `id`, `items` (array of `{name, quantity, price}`), `total_price`, `payment_method`, `delivery_type`, `delivery_address`, `customer_email`, `invoice_number`. Where the user's spec references `subtotal` / `total_amount` / `scheduled_date` / `customer_address` (which don't exist in our schema), map to nearest equivalents: `total_price` for both subtotal & total, `delivery_address` for address, and omit `scheduled_date` line if not present.
-   - Invoice URL uses `${window.location.origin}/invoice/${order.invoice_number || order.id}` to match existing `/invoice/:id` route convention used elsewhere in the file.
+## Technical details
+- Add a dedicated order catalogue page by reusing the current product query and cart behavior.
+- Create focused homepage sections and source imagery from existing product records where suitable; use a cohesive generated supplier image only where a strong editorial image is needed.
+- Keep all colors in global semantic tokens and use existing button and accordion controls.
+- Update app-specific page metadata and load Sora/Manrope through the document head.
+- Verify `/`, `/order`, cart-to-checkout, desktop layout, and mobile layout in the live preview.
 
-2. **Replace `sendEmail(order, type)`** with a single dispatcher that:
-   - Picks the right builder by `type`.
-   - Calls `window.open(\`mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}\`, "_blank")`.
-   - Marks the corresponding `email_confirmation_sent` / `email_ready_sent` flag in Supabase (preserve existing behavior).
-   - Fires `toast.success("Gmail compose opened—click Send!")`.
-
-3. **Loading state on the two buttons**:
-   - Add local state `const [emailLoading, setEmailLoading] = useState<{id: string, type: "confirm"|"ready"} | null>(null)`.
-   - On click: set loading, call dispatcher, `setTimeout(() => setEmailLoading(null), 2000)`.
-   - Button label swaps to `"Opening Gmail..."` while active; icon stays.
-
-4. **Disabled + tooltip when no email**:
-   - Wrap each Email button with shadcn `Tooltip` (already in `components/ui/tooltip.tsx`, `TooltipProvider` is mounted in `App.tsx`).
-   - When `!o.customer_email`, render the button `disabled` with tooltip text `"No email on file"`. Otherwise render plain button (no tooltip wrapper, or tooltip with empty content suppressed).
-   - Currently the email buttons are only rendered inside `{o.customer_email && (...)}` — change to always render so the disabled-with-tooltip state is reachable, gated only by status logic.
-
-5. **Preserve existing styling**: keep `variant="outline"`, `size="sm"`, `gap-1 text-xs`, and the `Mail` icon. Keep the `✓` suffix when `email_*_sent` is true. Keep WhatsApp buttons untouched.
-
-### Technical notes
-- `encodeURIComponent` already preserves `\n` correctly for `mailto:` body — most clients (Gmail web, Apple Mail, Outlook) honor them as line breaks.
-- No schema changes, no new queries, no new dependencies.
-- Mobile layout unaffected — buttons stay in the existing `flex flex-wrap gap-2` row.
-
-### Out of scope
-- WhatsApp buttons, status buttons, payment buttons — unchanged.
-- No new "Send via Gmail API" integration.
-- No changes to invoice page routing.
+## Out of scope
+- No database changes.
+- No changes to checkout submission, authentication, admin data, reports, loyalty rules, product pricing, or inventory logic.
