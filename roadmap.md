@@ -1,3 +1,3 @@
-- [ ] Build bespoke story-led homepage and separate /order shop
-- [ ] Update public navigation, footer, fonts, and metadata
-- [ ] Verify desktop/mobile and ordering handoff
+- [x] Build bespoke story-led homepage and separate /order shop
+- [x] Update public navigation, footer, fonts, and metadata
+- [x] Verify desktop/mobile and ordering handoff
