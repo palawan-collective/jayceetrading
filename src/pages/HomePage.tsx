@@ -1,27 +1,145 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowRight, Box, MapPin, PackageCheck, Snowflake, Truck } from "lucide-react";
+import {
+  ArrowDown, ArrowRight, ArrowUpRight, Award, Boxes, Check, ChevronRight,
+  Compass, HeartHandshake, Leaf, Mail, MapPin, PackageCheck,
+  Phone, Snowflake, Truck, Users, Warehouse, type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessSettings } from "@/hooks/use-settings";
+import businessTableImage from "@/assets/jaycee-business-table.jpg";
+import coldStorageImage from "@/assets/jaycee-cold-storage.jpg";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import heroImage from "@/assets/jaycee-hero.jpg";
-import coldStorageImage from "@/assets/jaycee-cold-storage.jpg";
-import businessTableImage from "@/assets/jaycee-business-table.jpg";
+import PartnerLogos from "@/components/PartnerLogos";
+import PartnershipInquiryDialog from "@/components/PartnershipInquiryDialog";
+import TypewriterAnswer from "@/components/TypewriterAnswer";
 
-const processSteps = [
-  { number: "01", title: "Stored with care", copy: "Temperature-conscious storage protects every product before it leaves us." },
-  { number: "02", title: "Packed personally", copy: "Each order is checked and prepared by a small team that knows the stock." },
-  { number: "03", title: "Moving locally", copy: "Reliable pickup and delivery options keep Palawan kitchens supplied." },
+const serviceAreas = ["Puerto Princesa", "Port Barton", "San Vicente", "Roxas", "Sabang", "Taytay", "El Nido"];
+const featuredCategories = [
+  { category: "Canned food", detail: "Everyday pantry favourites", keywords: ["canned", "tin", "pantry", "grocery"] },
+  { category: "Frozen products", detail: "Ready for the kitchen", keywords: ["frozen", "fries", "burger", "sausage", "meat", "seafood", "chicken"] },
+  { category: "Dairy", detail: "Cheese, yogurt & cream", keywords: ["dairy", "cheese", "yogurt", "cream", "milk", "butter"] },
+  { category: "Imported goods", detail: "Flavours from further afield", keywords: ["imported", "international", "specialty"] },
 ];
-
 const fallbackFaqs = [
-  { id: "delivery", question: "Where do you deliver?", answer: "Delivery coverage and available options are confirmed during checkout based on your order details." },
-  { id: "business", question: "Can businesses place regular supply orders?", answer: "Yes. Restaurants, cafés, hotels, and other food businesses can contact JayCee for supply enquiries." },
-  { id: "pickup", question: "Can I collect my order?", answer: "Yes. Choose pickup at checkout and the team will confirm when your order is ready." },
+  { id: "range", question: "What products does JayCee supply?", answer: "Our range includes canned food, frozen products, dairy, and imported goods. Browse the online catalogue to see current products and availability." },
+  { id: "delivery", question: "Where do you deliver?", answer: `We serve ${serviceAreas.slice(0, -1).join(", ")}, and ${serviceAreas[serviceAreas.length - 1]}. Please contact us to confirm delivery timing and arrangements for your location.` },
+  { id: "business", question: "Can hotels, restaurants, and other businesses partner with JayCee?", answer: "Yes. We work with food businesses and hospitality partners. Get in touch to discuss your product needs and regular supply requirements." },
 ];
+
+const values = [
+  { icon: Award, title: "Quality products", copy: "Thoughtfully sourced products and careful handling at every step." },
+  { icon: HeartHandshake, title: "Excellent service", copy: "A responsive local team that takes the time to understand your needs." },
+  { icon: Check, title: "Honesty & integrity", copy: "Clear communication and dependable relationships, built to last." },
+  { icon: Compass, title: "Innovation", copy: "Fresh thinking that helps us respond to changing tastes and needs." },
+  { icon: Users, title: "Community focus", copy: "Proud to support the businesses and families that make Palawan special." },
+  { icon: Leaf, title: "Thoughtful growth", copy: "Reaching new customers while exploring more sustainable choices." },
+];
+
+const ambitions = [
+  { icon: Compass, title: "Reach more communities", copy: "Grow our service network and make dependable supply available to more of Palawan." },
+  { icon: Boxes, title: "Build a better online experience", copy: "Make it easier for customers to discover products and plan their orders." },
+  { icon: Leaf, title: "Make thoughtful choices", copy: "Explore practical ways to reduce waste and support more sustainable options." },
+];
+
+function ValueFlipCard({ icon: Icon, title, copy, index }: { icon: LucideIcon; title: string; copy: string; index: number }) {
+  const [flipped, setFlipped] = useState(false);
+
+  return (
+    <article className={`value-card${flipped ? " is-flipped" : ""}`}>
+      <button
+        type="button"
+        className="value-card__button"
+        aria-label={`${title}: reveal value details`}
+        aria-pressed={flipped}
+        onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) setFlipped(true); }}
+        onMouseLeave={() => { if (window.matchMedia("(hover: hover)").matches) setFlipped(false); }}
+        onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) setFlipped(true); }}
+        onBlur={() => setFlipped(false)}
+        onClick={(event) => {
+          if (window.matchMedia("(hover: none)").matches && event.detail > 0) setFlipped((current) => !current);
+        }}
+      >
+        <span className="value-card__inner">
+          <span className="value-card__face value-card__front" aria-hidden={flipped}>
+            <span className="value-card__number">0{index + 1}</span>
+            <Icon aria-hidden="true" size={27} strokeWidth={1.6} />
+            <span className="value-card__title" role="heading" aria-level={3}>{title}</span>
+            <span className="value-card__hint">Explore this value <ArrowUpRight size={13} /></span>
+          </span>
+          <span className="value-card__face value-card__back" aria-hidden={!flipped}>
+            <span className="value-card__number">0{index + 1}</span>
+            <Icon aria-hidden="true" size={25} strokeWidth={1.6} />
+            <span className="value-card__title" role="heading" aria-level={3}>{title}</span>
+            <span className="value-card__copy">{copy}</span>
+          </span>
+        </span>
+      </button>
+    </article>
+  );
+}
+
+function useScrollReveal() {
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>("[data-reveal]");
+    if (!("IntersectionObserver" in window)) {
+      elements.forEach((element) => element.classList.add("is-visible"));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    const observeNewElements = () => {
+      document.querySelectorAll<HTMLElement>("[data-reveal]:not(.is-visible):not([data-observed])").forEach((element) => {
+        element.dataset.observed = "true";
+        observer.observe(element);
+      });
+    };
+    observeNewElements();
+    const mutations = new MutationObserver(observeNewElements);
+    mutations.observe(document.querySelector(".marketing-page") ?? document.body, { childList: true, subtree: true });
+    return () => { observer.disconnect(); mutations.disconnect(); };
+  }, []);
+}
+
+function useHeroParallax() {
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const images = Array.from(document.querySelectorAll<HTMLElement>("[data-parallax]"));
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        images.forEach((image) => {
+          const rect = image.getBoundingClientRect();
+          if (rect.bottom > 0 && rect.top < window.innerHeight) {
+            const distance = Math.max(0, window.innerHeight - rect.top);
+            image.style.setProperty("--parallax-y", `${Math.min(distance * 0.035, 24)}px`);
+          }
+        });
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+}
 
 export default function HomePage() {
+  useScrollReveal();
+  useHeroParallax();
   const { data: business } = useBusinessSettings();
   const { data: products } = useQuery({
     queryKey: ["home-product-story"],
@@ -34,158 +152,194 @@ export default function HomePage() {
   const { data: faqs } = useQuery({
     queryKey: ["faqs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("faqs").select("id,question,answer").eq("is_active", true).order("display_order").limit(5);
+      const { data, error } = await supabase.from("faqs").select("id,question,answer").eq("is_active", true).order("display_order").limit(4);
       if (error) throw error;
       return data;
     },
   });
 
-  const categories = Array.from(new Set(products?.map((product) => product.category) ?? [])).slice(0, 6);
-  const categoryStories = categories.map((category) => ({
-    category,
-    image: products?.find((product) => product.category === category && product.image_url)?.image_url,
-  }));
+  const storedCategories = [...new Set(products?.map((product) => product.category) ?? [])];
+  const imageProducts = (products ?? []).filter((product) => Boolean(product.image_url));
+  const usedProductImages = new Set<string>();
+  const categories = featuredCategories.map(({ category, detail, keywords }, index) => {
+    const storedCategory = storedCategories.find((stored) => keywords.some((keyword) => stored.toLowerCase().includes(keyword)));
+    const productImage =
+      imageProducts.find((product) => product.category === storedCategory && product.image_url && !usedProductImages.has(product.image_url)) ??
+      imageProducts.find((product) => keywords.some((keyword) => `${product.category} ${product.name}`.toLowerCase().includes(keyword)) && product.image_url && !usedProductImages.has(product.image_url)) ??
+      imageProducts.find((product) => product.image_url && !usedProductImages.has(product.image_url)) ??
+      imageProducts[0];
+    if (productImage?.image_url) usedProductImages.add(productImage.image_url);
+    return {
+      category,
+      detail,
+      image: productImage?.image_url,
+      index,
+      href: storedCategory ? `/order?category=${encodeURIComponent(storedCategory)}` : "/order",
+    };
+  });
   const faqItems = faqs?.length ? faqs : fallbackFaqs;
-  const whatsappNumber = business?.whatsapp_business_number?.replace(/\D/g, "");
-  const wholesaleHref = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hello JayCee, I would like to ask about wholesale supply.")}`
-    : `mailto:${business?.business_email || "tradingjaycee@gmail.com"}?subject=${encodeURIComponent("Wholesale supply enquiry")}`;
+  const phone = business?.business_phone || "009771167555";
+  const email = business?.business_email || "info@jayceetrading.com";
+  const address = business?.business_address || "Unit 5, Ground Floor Daniel Business Alley, Corner Libis San Pedro, Puerto Princesa, Palawan";
+  const [partnershipOpen, setPartnershipOpen] = useState(false);
+  const openPartnership = () => setPartnershipOpen(true);
+  const mapsHref = business?.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
-    <div className="marketing-page overflow-hidden">
-      <section className="border-b border-border" aria-labelledby="home-title">
-        <div className="container grid grid-cols-1 items-center gap-10 px-4 py-10 md:py-14 lg:min-h-[46rem] lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-16">
-          <div className="order-2 max-w-xl space-y-8 lg:order-1">
-            <div className="space-y-4">
-              <p className="text-xs font-bold uppercase text-primary">Food supplier in Puerto Princesa · Since 2017</p>
-              <h1 id="home-title" className="font-heading text-5xl font-bold leading-[0.98] md:text-7xl">Good food starts with a dependable source.</h1>
-              <p className="max-w-lg text-lg leading-relaxed text-muted-foreground md:text-xl">JayCee keeps homes and professional kitchens across Palawan supplied with carefully handled meats, dairy, seafood, frozen goods, and pantry essentials.</p>
+    <div className="marketing-page">
+      <section id="top" className="brand-hero" aria-labelledby="hero-title">
+        <div className="container brand-hero__inner">
+          <div className="brand-hero__copy" data-reveal>
+            <div className="hero-kicker"><span className="hero-kicker__line" /> Quality food. Stronger communities.</div>
+            <p className="eyebrow hero-location"><MapPin size={14} /> Puerto Princesa, Palawan</p>
+            <h1 id="hero-title">{business?.hero_title_line1 || "Savor the taste."}<br /><em>{business?.hero_title_line2 || "Indulge in quality."}</em></h1>
+            <p className="brand-hero__intro">{business?.hero_intro || "A trusted food distribution partner for homes, hotels, restaurants, and businesses across Palawan since 2017."}</p>
+            <div className="brand-hero__actions">
+              <Button asChild size="lg" className="brand-button"><Link to="/order">Explore our products <ArrowRight size={17} /></Link></Button>
+              <Button type="button" size="lg" variant="outline" className="brand-outline-button" onClick={openPartnership}>Partner with us <ArrowUpRight size={16} /></Button>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg"><Link to="/order">Order online <ArrowRight className="h-4 w-4" /></Link></Button>
-              <Button asChild variant="outline" size="lg"><a href={wholesaleHref}>Wholesale enquiry</a></Button>
-            </div>
-            <div className="grid grid-cols-2 gap-6 border-t border-border pt-7">
-              <div><p className="font-heading text-3xl font-bold">2017</p><p className="mt-1 text-sm text-muted-foreground">Serving local kitchens</p></div>
-              <div><p className="font-heading text-3xl font-bold">Palawan</p><p className="mt-1 text-sm text-muted-foreground">Built for island supply</p></div>
-            </div>
+            <div className="hero-note"><span className="hero-note__icon"><Snowflake size={18} /></span><span>Quality products, handled with care.<br /><strong>Locally rooted. Proudly Palawan.</strong></span></div>
           </div>
-          <div className="order-1 relative lg:order-2">
-            <div className="aspect-[4/3] overflow-hidden rounded-sm lg:aspect-[5/6]">
-              <img src={heroImage} alt="JayCee staff carefully handing over a cold-storage food order" width={1600} height={1067} className="h-full w-full object-cover" />
-            </div>
-            <div className="absolute bottom-4 left-4 max-w-[15rem] border border-border bg-background p-4 shadow-sm md:bottom-6 md:left-6">
-              <p className="text-xs font-bold uppercase text-primary">Handled here. Supplied here.</p>
-              <p className="mt-2 text-sm leading-snug">A local team, personally accountable for every order.</p>
-            </div>
+          <div className="brand-hero__visual" data-reveal>
+            <img src={business?.hero_image_url || "/images/brand/jaycee-store.webp"} alt="JayCee Trading & Services in Palawan" className="hero-store-image" data-parallax fetchPriority="high" />
           </div>
         </div>
-      </section>
-
-      <section className="border-b border-border bg-foreground text-background" aria-label="Service commitments">
-        <div className="container grid grid-cols-2 px-4 md:grid-cols-4">
-          {[{ icon: Snowflake, label: "Proper cold storage" }, { icon: PackageCheck, label: "Careful packing" }, { icon: Truck, label: "Reliable local delivery" }, { icon: Box, label: "Quality product range" }].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex min-h-24 items-center gap-3 border-border/30 px-3 py-5 even:border-l md:border-l md:first:border-l-0">
-              <Icon className="h-5 w-5 shrink-0 text-primary" /><span className="text-xs font-semibold uppercase">{label}</span>
-            </div>
-          ))}
+        <div className="hero-bottom container">
+          <span>Trusted supply since 2017</span><span className="hero-bottom__divider" /><span>Serving seven Palawan communities</span><a href="#story">Discover our story <ChevronRight size={14} /></a>
         </div>
       </section>
 
-      <section id="products" className="py-20 md:py-28" aria-labelledby="range-title">
-        <div className="container px-4">
-          <div className="mb-10 grid gap-6 md:grid-cols-[1fr_0.65fr] md:items-end">
-            <div><p className="mb-3 text-xs font-bold uppercase text-primary">The range</p><h2 id="range-title" className="font-heading text-4xl font-bold md:text-6xl">A working pantry for Palawan.</h2></div>
-            <p className="max-w-lg text-base leading-relaxed text-muted-foreground md:justify-self-end">Everyday family essentials and dependable professional supply, kept together in one practical catalogue.</p>
+      <section className="brand-proof-strip" aria-label="JayCee at a glance">
+        <div className="container brand-proof-strip__inner">
+          <div className="brand-proof-item"><strong>2017</strong><span><b>Established</b><small>Family-founded in Palawan</small></span></div>
+          <div className="brand-proof-item"><strong>07</strong><span><b>Delivery areas</b><small>Across Palawan</small></span></div>
+          <div className="brand-proof-item"><strong>Local</strong><span><b>Food distribution</b><small>For homes and professional kitchens</small></span></div>
+        </div>
+      </section>
+
+      <PartnerLogos />
+
+      <section id="products" className="section-space product-section" aria-labelledby="products-heading">
+        <div className="container">
+          <div className="section-heading" data-reveal>
+            <div><p className="eyebrow">Good things, well sourced</p><h2 id="products-heading">Made for the way<br /><em>Palawan eats.</em></h2></div>
+            <div className="section-heading__aside"><p>From everyday essentials to kitchen staples, explore a considered range for homes and professional kitchens.</p><Link to="/order" className="text-link">Browse the full catalogue <ArrowRight size={16} /></Link></div>
           </div>
-          {categoryStories.length > 0 ? (
-            <div className="grid auto-rows-[14rem] grid-cols-2 gap-3 md:auto-rows-[17rem] md:grid-cols-4">
-              {categoryStories.map((item, index) => (
-                <Link key={item.category} to={`/order?category=${encodeURIComponent(item.category)}`} className={`group relative overflow-hidden rounded-sm bg-secondary ${index === 0 || index === 3 ? "col-span-2" : ""}`}>
-                  {item.image && <img src={item.image} alt={`${item.category} products`} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-5 text-background"><h3 className="font-heading text-lg font-bold">{item.category}</h3><ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
-                </Link>
-              ))}
-            </div>
-          ) : <div className="h-80 animate-pulse rounded-sm bg-secondary" />}
-          <div className="mt-8 flex flex-col items-start justify-between gap-4 border-b border-border pb-8 sm:flex-row sm:items-center">
-            <p className="font-heading text-xl font-semibold">Looking for something specific?</p>
-            <Button asChild variant="outline"><Link to="/order">Open the complete catalogue <ArrowRight className="h-4 w-4" /></Link></Button>
+          <div className="category-grid">
+            {categories.map(({ category, detail, image, index, href }) => (
+              <Link key={category} to={href} className={`category-card category-card--${index + 1}`} data-reveal>
+                {image ? <img src={image} alt={`${category} from JayCee's product range`} loading="lazy" /> : <div className="category-card__art"><span className="category-card__number">0{index + 1}</span><span className="category-card__shape" /></div>}
+                <span className="category-card__shade" />
+                <span className="category-card__copy"><small>{detail}</small><strong>{category}</strong><span className="category-card__arrow"><ArrowUpRight size={18} /></span></span>
+              </Link>
+            ))}
+          </div>
+          <div className="catalogue-note"><PackageCheck size={19} /><p>Looking for a particular item? <Link to="/order">Explore all available products</Link> or <button type="button" className="inline-text-button" onClick={openPartnership}>talk to our team</button>.</p></div>
+        </div>
+      </section>
+
+      <section className="service-section" id="delivery" aria-labelledby="service-title">
+        <div className="service-section__map">
+          <iframe
+            title="Map showing JayCee Trading & Services in Puerto Princesa"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3932.022030793975!2d118.7521104!3d9.764201!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33b563000ff94ee5%3A0x361d56d8cceee597!2sJayCee%20Trading%20%26%20Services!5e0!3m2!1sen!2sph!4v1794188163026!5m2!1sen!2sph"
+            width="600"
+            height="450"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+          <span className="service-section__map-label"><MapPin size={16} /> JayCee Trading &amp; Services</span>
+          <a className="service-section__map-link" href={mapsHref} target="_blank" rel="noreferrer">Open in Maps <ArrowUpRight size={14} /></a>
+        </div>
+        <div className="service-section__content" data-reveal>
+          <p className="eyebrow">From our doorstep to yours</p>
+          <h2 id="service-title">Palawan is our home.<br /><em>It’s where we show up.</em></h2>
+          <p className="service-section__intro">We’re proud to serve homes, hospitality teams, and businesses across the island with thoughtful, dependable food supply.</p>
+          <div className="service-locations" aria-label="Delivery service locations">
+            {serviceAreas.map((area) => <span key={area}><MapPin size={14} />{area}</span>)}
+          </div>
+          <p className="service-footnote">Contact us to confirm delivery schedules and arrangements for your area.</p>
+          <button type="button" className="text-link" onClick={openPartnership}>Ask about delivery <ArrowRight size={16} /></button>
+        </div>
+      </section>
+
+      <section id="story" className="story-section section-space" aria-labelledby="story-title">
+        <div className="container story-layout">
+          <div className="story-image-wrap" data-reveal>
+            <img src={businessTableImage} alt="Fresh food ingredients prepared in a professional kitchen" loading="lazy" />
+            <div className="story-image-label"><span>Since</span><strong>2017</strong><small>PALAWAN, PHILIPPINES</small></div>
+            <span className="story-image-accent" aria-hidden="true" />
+          </div>
+          <div className="story-copy" data-reveal>
+            <p className="eyebrow">A family story, a local commitment</p>
+            <h2 id="story-title">Our story is built around <em>good food</em> and good people.</h2>
+            <p>Founded in 2017 by siblings with a passion for food, JayCee Trading &amp; Services began with a simple idea: share exceptional taste experiences with family, friends, and the wider community.</p>
+            <p>That idea has grown into a Palawan-based distribution business connecting homes and professional kitchens with local and imported food products. We believe quality should come with honest service, careful handling, and a team you can reach.</p>
+            <button type="button" className="text-link" onClick={openPartnership}>Get to know JayCee <ArrowRight size={16} /></button>
           </div>
         </div>
       </section>
 
-      <section id="wholesale" className="border-y border-border bg-secondary/40 py-20 md:py-28" aria-labelledby="customers-title">
-        <div className="container px-4">
-          <p className="mb-3 text-xs font-bold uppercase text-primary">Who we supply</p>
-          <h2 id="customers-title" className="max-w-3xl font-heading text-4xl font-bold md:text-6xl">One supplier. Two very different kitchens.</h2>
-          <div className="mt-12 grid gap-4 lg:grid-cols-12 lg:items-stretch">
-            <article className="flex flex-col justify-between border border-border bg-background p-7 lg:col-span-5 lg:p-10">
-              <div><p className="text-xs font-bold uppercase text-primary">For home</p><h3 className="mt-4 font-heading text-3xl font-bold">Keep family favorites within reach.</h3><p className="mt-5 leading-relaxed text-muted-foreground">Choose from practical pack sizes, order on your phone, and arrange pickup or delivery without the wholesale runaround.</p></div>
-              <Button asChild className="mt-10 w-fit"><Link to="/order">Shop for home</Link></Button>
-            </article>
-            <div className="min-h-[24rem] overflow-hidden lg:col-span-7"><img src={businessTableImage} alt="Quality ingredients prepared for a professional kitchen" width={1200} height={900} loading="lazy" className="h-full w-full object-cover" /></div>
-            <article className="border border-border bg-foreground p-7 text-background lg:col-span-12 lg:grid lg:grid-cols-2 lg:items-end lg:gap-16 lg:p-10">
-              <div><p className="text-xs font-bold uppercase text-primary">For business</p><h3 className="mt-4 font-heading text-3xl font-bold md:text-4xl">Supply that respects your service.</h3></div>
-              <div><p className="mt-5 leading-relaxed text-background/70 lg:mt-0">Restaurants, cafés, hotels, and food businesses need consistency, clear communication, and products that arrive ready for work.</p><Button asChild variant="secondary" className="mt-7"><a href={wholesaleHref}>Start a supply conversation</a></Button></div>
-            </article>
+      <section className="values-section section-space" aria-labelledby="values-title">
+        <div className="container">
+          <div className="values-heading" data-reveal><p className="eyebrow">Our purpose & values</p><h2 id="values-title">Driven by quality.<br /><em>Grounded in integrity.</em></h2><p>Our mission is to provide high-quality food at the best possible prices, making delicious choices accessible to more homes, kitchens, and communities.</p></div>
+          <div className="values-grid">
+            {values.map((value, index) => <ValueFlipCard key={value.title} {...value} index={index} />)}
           </div>
         </div>
       </section>
 
-      <section id="delivery" className="py-20 md:py-28" aria-labelledby="care-title">
-        <div className="container grid gap-12 px-4 lg:grid-cols-2 lg:items-center lg:gap-20">
-          <div className="relative"><img src={coldStorageImage} alt="Food products being carefully organized in cold storage" width={1200} height={900} loading="lazy" className="aspect-[4/5] w-full object-cover" /><p className="absolute bottom-4 right-4 bg-background px-4 py-3 text-xs font-semibold">Cold-chain care, close to home.</p></div>
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase text-primary">The journey</p>
-            <h2 id="care-title" className="font-heading text-4xl font-bold md:text-6xl">From our cold room to your kitchen.</h2>
-            <div className="mt-10 divide-y divide-border border-y border-border">
-              {processSteps.map((step) => <div key={step.number} className="grid grid-cols-[3rem_1fr] gap-5 py-7"><span className="font-heading text-sm font-bold text-primary">{step.number}</span><div><h3 className="font-heading text-xl font-bold">{step.title}</h3><p className="mt-2 leading-relaxed text-muted-foreground">{step.copy}</p></div></div>)}
-            </div>
-          </div>
+      <section className="operations-section" aria-labelledby="operations-title">
+        <div className="operations-section__photo"><img data-parallax src={coldStorageImage} alt="Careful cold-storage handling for food products" loading="lazy" /></div>
+        <div className="operations-section__copy" data-reveal>
+          <p className="eyebrow">Care from the start</p>
+          <h2 id="operations-title">Freshness is a promise we take <em>seriously.</em></h2>
+          <p>Our central warehouse is equipped with refrigerated and frozen storage to help protect dairy, produce, frozen goods, and more from the moment they arrive to the moment they’re on their way.</p>
+          <div className="operations-points"><span><Snowflake size={18} /> Cold-chain care</span><span><Warehouse size={18} /> Purpose-ready storage</span><span><Truck size={18} /> Planned local delivery</span></div>
+          <Button type="button" variant="outline" className="brand-outline-button" onClick={openPartnership}>Talk to our team <ArrowRight size={16} /></Button>
         </div>
       </section>
 
-      <section id="about" className="border-y border-border py-20 md:py-28" aria-labelledby="about-title">
-        <div className="container grid gap-10 px-4 md:grid-cols-[0.7fr_1.3fr] md:gap-20">
-          <div><p className="text-xs font-bold uppercase text-primary">JayCee, since 2017</p><div className="mt-6 h-1 w-16 bg-primary" /></div>
-          <div><h2 id="about-title" className="font-heading text-4xl font-bold leading-tight md:text-6xl">A small local team that cares about every order.</h2><p className="mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground">JayCee Trading &amp; Services grew around a straightforward promise: source dependable food products, handle them properly, and be the kind of supplier people can speak to. That personal responsibility still shapes every order today.</p></div>
+      <section className="team-section section-space" aria-labelledby="team-title">
+        <div className="container team-layout">
+          <div className="team-mark" data-reveal><Users size={42} strokeWidth={1.2} /><span>GOOD PEOPLE.<br />GOOD SERVICE.</span></div>
+          <div className="team-copy" data-reveal><p className="eyebrow">The people behind every order</p><h2 id="team-title">Passionate professionals.<br /><em>Personal service.</em></h2><p>Our team brings experience across sales, marketing, and distribution, with a shared focus on making every customer interaction memorable. We keep learning, improving, and showing up for the people who count on us.</p></div>
         </div>
       </section>
 
-      <section id="contact" className="bg-secondary/40 py-20 md:py-28" aria-labelledby="visit-title">
-        <div className="container grid gap-10 px-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
-          <div><p className="mb-3 text-xs font-bold uppercase text-primary">Visit or get in touch</p><h2 id="visit-title" className="font-heading text-4xl font-bold md:text-6xl">Local supply starts with a real conversation.</h2></div>
-          <address className="not-italic">
-            <div className="space-y-6 border-t border-border pt-6">
-              {business?.business_address && <div className="flex gap-4"><MapPin className="mt-1 h-5 w-5 shrink-0 text-primary" /><div><p className="font-semibold">JayCee Trading &amp; Services</p><p className="mt-1 text-muted-foreground">{business.business_address}</p></div></div>}
-              {business?.business_phone && <a className="block font-heading text-2xl font-bold hover:text-primary" href={`tel:${business.business_phone}`}>{business.business_phone}</a>}
-              {business?.business_email && <a className="block break-all text-muted-foreground hover:text-primary" href={`mailto:${business.business_email}`}>{business.business_email}</a>}
-              <div className="flex flex-wrap gap-3 pt-2">
-                {business?.google_maps_url && <Button asChild><a href={business.google_maps_url} target="_blank" rel="noreferrer">Get directions <ArrowRight className="h-4 w-4" /></a></Button>}
-                <Button asChild variant="outline"><a href={wholesaleHref}>Contact JayCee</a></Button>
-              </div>
-            </div>
-          </address>
+      <section className="vision-section" aria-labelledby="vision-title">
+        <div className="container">
+          <div className="vision-intro" data-reveal><div><p className="eyebrow">Looking forward</p><h2 id="vision-title">Expanding horizons,<br /><em>with Palawan in mind.</em></h2></div><p>We’re working toward becoming the most trusted supplier in Palawan—growing thoughtfully, listening closely, and bringing new ideas to market.</p></div>
+          <div className="ambitions-grid">{ambitions.map(({ icon: Icon, title, copy }, index) => <article className="ambition-card" key={title} data-reveal><span className="ambition-card__number">0{index + 1}</span><Icon size={25} /><h3>{title}</h3><p>{copy}</p></article>)}</div>
         </div>
       </section>
 
-      <section id="faqs" className="py-20 md:py-28" aria-labelledby="faq-title">
-        <div className="container grid gap-10 px-4 lg:grid-cols-[0.55fr_1fr] lg:gap-20">
-          <div><p className="mb-3 text-xs font-bold uppercase text-primary">Before you order</p><h2 id="faq-title" className="font-heading text-4xl font-bold">Questions, answered simply.</h2></div>
-          <Accordion type="single" collapsible className="border-t border-border">
-            {faqItems.map((faq) => <AccordionItem key={faq.id} value={String(faq.id)}><AccordionTrigger className="text-left font-heading font-semibold">{faq.question}</AccordionTrigger><AccordionContent className="max-w-2xl leading-relaxed text-muted-foreground">{faq.answer}</AccordionContent></AccordionItem>)}
+      <section id="faqs" className="faq-section section-space" aria-labelledby="faq-title">
+        <div className="container faq-layout">
+          <div data-reveal><p className="eyebrow">The helpful details</p><h2 id="faq-title">A few things<br /><em>you may be wondering.</em></h2><p className="faq-contact">Still have a question? <a href={`mailto:${email}`}>Send us a note <ArrowUpRight size={14} /></a></p></div>
+          <Accordion type="single" collapsible className="faq-list" data-reveal>
+            {faqItems.map((faq) => <AccordionItem key={faq.id} value={String(faq.id)}><AccordionTrigger>{faq.question}</AccordionTrigger><AccordionContent><TypewriterAnswer text={faq.answer} /></AccordionContent></AccordionItem>)}
           </Accordion>
         </div>
       </section>
 
-      <section className="bg-primary py-12 text-primary-foreground">
-        <div className="container flex flex-col items-start justify-between gap-7 px-4 md:flex-row md:items-center">
-          <div><p className="text-xs font-bold uppercase text-primary-foreground/70">Ready when you are</p><h2 className="mt-2 font-heading text-3xl font-bold md:text-4xl">Put quality food on the way.</h2></div>
-          <Button asChild size="lg" variant="secondary"><Link to="/order">Order online <ArrowRight className="h-4 w-4" /></Link></Button>
+      <section id="contact" className="contact-section" aria-labelledby="contact-title">
+        <div className="container contact-layout">
+          <div className="contact-copy" data-reveal><p className="eyebrow">Let’s do business</p><h2 id="contact-title">More than a supplier.<br /><em>A partner in your success.</em></h2><p>Whether you’re stocking a family pantry or planning supply for a busy kitchen, we’d love to hear from you.</p><div className="contact-actions"><Button type="button" size="lg" className="brand-button" onClick={openPartnership}>Start a conversation <ArrowUpRight size={16} /></Button><Button asChild size="lg" variant="outline" className="contact-order-button"><Link to="/order">Shop online <ArrowRight size={16} /></Link></Button></div></div>
+          <address className="contact-card" data-reveal>
+            <p className="eyebrow">Come say hello</p>
+            <a href={mapsHref} target="_blank" rel="noreferrer" className="contact-detail"><MapPin size={18} /><span>{address}<small>Puerto Princesa, Palawan</small></span><ArrowUpRight size={15} /></a>
+            <a href={`tel:${phone}`} className="contact-detail"><Phone size={18} /><span>{phone}<small>Call our team</small></span><ArrowUpRight size={15} /></a>
+            <a href={`mailto:${email}`} className="contact-detail"><Mail size={18} /><span>{email}<small>Email JayCee</small></span><ArrowUpRight size={15} /></a>
+            <div className="contact-social"><span>Follow our journey</span><a href="https://www.instagram.com/jaycee.tradingservices/" target="_blank" rel="noreferrer">@jaycee.tradingservices <ArrowUpRight size={13} /></a></div>
+          </address>
         </div>
       </section>
+
+      <div className="closing-band"><div className="container"><span>JAYCEE TRADING &amp; SERVICES</span><strong>Palawan feeds brighter days.</strong><a href="#top" onClick={(event) => { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Back to top <ArrowDown size={14} /></a></div></div>
+      <PartnershipInquiryDialog open={partnershipOpen} onOpenChange={setPartnershipOpen} />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import AdminNewsletter from "@/components/admin/AdminNewsletter";
 import AdminContacts from "@/components/admin/AdminContacts";
 import AdminPages from "@/components/admin/AdminPages";
 import AdminHeaderFooter from "@/components/admin/AdminHeaderFooter";
+import AdminSiteEditor from "@/components/admin/AdminSiteEditor";
 import AdminLoyalty from "@/components/admin/AdminLoyalty";
 import AdminReports from "@/components/admin/AdminReports";
 import { useQuery } from "@tanstack/react-query";
@@ -87,7 +88,8 @@ function AdminPanel() {
           <TabsTrigger value="newsletter" className="text-[12px] md:text-sm min-h-[44px] px-2">News</TabsTrigger>
           <TabsTrigger value="contacts" className="text-[12px] md:text-sm min-h-[44px] px-2">Contacts</TabsTrigger>
           <TabsTrigger value="loyalty" className="text-[12px] md:text-sm min-h-[44px] px-2">Loyalty</TabsTrigger>
-          <TabsTrigger value="header-footer" className="text-[12px] md:text-sm min-h-[44px] px-2">Header</TabsTrigger>
+          <TabsTrigger value="website" className="text-[12px] md:text-sm min-h-[44px] px-2">Website &amp; FAQs</TabsTrigger>
+          <TabsTrigger value="header-footer" className="text-[12px] md:text-sm min-h-[44px] px-2">Header / Footer</TabsTrigger>
           <TabsTrigger value="settings" className="text-[12px] md:text-sm min-h-[44px] px-2">Settings</TabsTrigger>
         </TabsList>
 
@@ -101,6 +103,7 @@ function AdminPanel() {
         <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
         <TabsContent value="newsletter"><AdminNewsletter /></TabsContent>
         <TabsContent value="contacts"><AdminContacts /></TabsContent>
+        <TabsContent value="website"><AdminSiteEditor /></TabsContent>
         <TabsContent value="header-footer"><AdminHeaderFooter /></TabsContent>
         <TabsContent value="loyalty"><AdminLoyalty /></TabsContent>
         <TabsContent value="settings"><AdminSettings /></TabsContent>

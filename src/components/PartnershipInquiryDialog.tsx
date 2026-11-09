@@ -1,0 +1,139 @@
+import { useState, type FormEvent } from "react";
+import { ArrowRight, Check, Mail, ShieldCheck } from "lucide-react";
+import "./PartnershipInquiryDialog.css";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+const serviceAreas = ["Puerto Princesa", "Port Barton", "San Vicente", "Roxas", "Sabang", "Taytay", "El Nido"];
+const businessTypes = ["Hotel or resort", "Restaurant or café", "Supermarket or retailer", "Caterer", "Other business"];
+const products = ["Canned food", "Frozen products", "Dairy", "Imported goods", "More than one category"];
+
+interface PartnershipInquiryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function PartnershipInquiryDialog({ open, onOpenChange }: PartnershipInquiryDialogProps) {
+  const [draftReady, setDraftReady] = useState(false);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setDraftReady(false);
+    onOpenChange(nextOpen);
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const fields = [
+      ["Name", formData.get("name")],
+      ["Business", formData.get("business")],
+      ["Business type", formData.get("businessType")],
+      ["Email", formData.get("email")],
+      ["Phone", formData.get("phone")],
+      ["Delivery location", formData.get("location")],
+      ["Products of interest", formData.get("products")],
+      ["Order frequency", formData.get("frequency") || "Not specified"],
+      ["Message", formData.get("message")],
+    ];
+    const body = fields.map(([label, value]) => `${label}: ${String(value ?? "").trim()}`).join("\n\n");
+    const subject = `Partnership enquiry from ${String(formData.get("business") || formData.get("name"))}`;
+    const emailDraft = `mailto:frontdesk@jayceetrading.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = emailDraft;
+    setDraftReady(true);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="partnership-dialog">
+        <DialogHeader className="partnership-dialog__header">
+          <span className="partnership-dialog__eyebrow">JayCee Trading &amp; Services</span>
+          <DialogTitle className="partnership-dialog__title">Let’s build a great partnership.</DialogTitle>
+          <DialogDescription className="partnership-dialog__description">
+            Tell us about your business and what you need. We’ll prepare an email to our front desk for you to review and send.
+          </DialogDescription>
+        </DialogHeader>
+
+        {draftReady ? (
+          <div className="partnership-confirmation" role="status" aria-live="polite">
+            <span className="partnership-confirmation__icon"><Check size={24} /></span>
+            <h3>Your enquiry is ready to send.</h3>
+            <p>We opened an email draft addressed to <strong>frontdesk@jayceetrading.com</strong>. Please review it and press Send in your email app.</p>
+            <a href="mailto:frontdesk@jayceetrading.com" className="partnership-confirmation__email"><Mail size={16} /> Email frontdesk@jayceetrading.com</a>
+            <Button type="button" className="brand-button" onClick={() => handleOpenChange(false)}>Done</Button>
+          </div>
+        ) : (
+          <form className="partnership-form" onSubmit={handleSubmit}>
+            <div className="partnership-form__grid">
+              <label className="partnership-field">
+                <span>Full name <b>*</b></span>
+                <input name="name" type="text" autoComplete="name" placeholder="Your name" required maxLength={100} />
+              </label>
+              <label className="partnership-field">
+                <span>Business / organization <b>*</b></span>
+                <input name="business" type="text" autoComplete="organization" placeholder="Business name" required maxLength={120} />
+              </label>
+              <label className="partnership-field">
+                <span>Work email <b>*</b></span>
+                <input name="email" type="email" autoComplete="email" placeholder="name@company.com" required maxLength={150} />
+              </label>
+              <label className="partnership-field">
+                <span>Phone number <b>*</b></span>
+                <input name="phone" type="tel" autoComplete="tel" placeholder="e.g. 09XX XXX XXXX" required maxLength={40} />
+              </label>
+              <label className="partnership-field">
+                <span>Type of business <b>*</b></span>
+                <select name="businessType" defaultValue="" required>
+                  <option value="" disabled>Select business type</option>
+                  {businessTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </label>
+              <label className="partnership-field">
+                <span>Delivery location <b>*</b></span>
+                <select name="location" defaultValue="" required>
+                  <option value="" disabled>Select service area</option>
+                  {serviceAreas.map((area) => <option key={area} value={area}>{area}</option>)}
+                  <option value="Other / please confirm">Other / please confirm</option>
+                </select>
+              </label>
+              <label className="partnership-field">
+                <span>Products of interest <b>*</b></span>
+                <select name="products" defaultValue="" required>
+                  <option value="" disabled>Select a product range</option>
+                  {products.map((product) => <option key={product} value={product}>{product}</option>)}
+                </select>
+              </label>
+              <label className="partnership-field">
+                <span>How often do you order?</span>
+                <select name="frequency" defaultValue="">
+                  <option value="">Select frequency (optional)</option>
+                  <option>One-time enquiry</option>
+                  <option>Weekly</option>
+                  <option>Every two weeks</option>
+                  <option>Monthly</option>
+                  <option>To be discussed</option>
+                </select>
+              </label>
+              <label className="partnership-field partnership-field--full">
+                <span>How can we help? <b>*</b></span>
+                <textarea name="message" placeholder="Tell us what products or supply support you’re looking for…" required minLength={10} maxLength={1200} rows={4} />
+                <small>At least 10 characters, please.</small>
+              </label>
+            </div>
+            <div className="partnership-form__footer">
+              <p><ShieldCheck size={15} /> Your details will be included in an email to JayCee’s front desk.</p>
+              <Button type="submit" className="brand-button">Prepare enquiry <ArrowRight size={16} /></Button>
+            </div>
+            <p className="partnership-form__note">Submitting prepares an email for you to review and send from your email app.</p>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
