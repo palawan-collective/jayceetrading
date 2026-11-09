@@ -1,20 +1,46 @@
-import { Facebook, Instagram, Lock, Menu, ShoppingBag, User, UtensilsCrossed, X } from "lucide-react";
-import { useHeaderSettings, useBusinessSettings, useSocialLinks } from "@/hooks/use-settings";
+import { Clock, Facebook, Instagram, Youtube, Linkedin, MessageCircle, Music2, Send, Globe, Menu, ShoppingBag, User, X } from "lucide-react";
+import { useBusinessSettings, useHeaderSettings, useSocialLinks } from "@/hooks/use-settings";
 import { useCartStore } from "@/lib/cart-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const socialIconMap = { facebook: Facebook, instagram: Instagram };
+const socialIconMap = { facebook: Facebook, instagram: Instagram, youtube: Youtube, linkedin: Linkedin, whatsapp: MessageCircle, tiktok: Music2, telegram: Send, globe: Globe };
 const storyLinks = [
+  { label: "Our story", href: "/#story" },
   { label: "Products", href: "/#products" },
-  { label: "Wholesale", href: "/#wholesale" },
-  { label: "About", href: "/#about" },
+  { label: "Our partners", href: "/#partners" },
   { label: "Delivery", href: "/#delivery" },
-  { label: "FAQs", href: "/#faqs" },
   { label: "Contact", href: "/#contact" },
 ];
+
+function ManilaClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const time = new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
+  }).format(now);
+  const fullDate = new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila", weekday: "long", month: "long", day: "numeric", year: "numeric",
+  }).format(now);
+  const compactDate = new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric",
+  }).format(now);
+
+  return (
+    <div className="manila-clock" aria-label={`Manila time ${time}, ${fullDate}`}>
+      <span className="manila-clock__zone"><Clock size={12} /> Manila time</span>
+      <time className="manila-clock__time" dateTime={now.toISOString()}>{time}</time>
+      <span className="manila-clock__date manila-clock__date--full">{fullDate}</span>
+      <span className="manila-clock__date manila-clock__date--compact">{compactDate}</span>
+    </div>
+  );
+}
 
 export default function Header() {
   const { data: header } = useHeaderSettings();
@@ -27,46 +53,51 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = location.pathname.startsWith("/admin");
   const enabledSocial = social?.filter((item) => item.is_enabled) || [];
+  // Ignore legacy uploaded logo URLs which were stored with a solid white matte; only use
+  // explicitly marked transparent custom logos, otherwise use the corrected local brand asset.
+  const logoSrc = business?.logo_url?.includes("transparent=1") ? business.logo_url : "/images/brand/jaycee-logo-transparent.png";
+  const headerBackground = header?.header_background_color?.toLowerCase() === "#0f172a" ? "#ffffff" : header?.header_background_color || "#ffffff";
+  const headerTextColor = header?.header_text_color?.toLowerCase() === "#ffffff" ? "#222222" : header?.header_text_color || "#222222";
 
   if (isAdmin) return null;
 
   const closeMenu = () => setMobileOpen(false);
-  const navClass = "text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
-      <div className="container flex h-16 items-center justify-between gap-3 px-4 lg:h-[4.5rem]">
-        <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label="JayCee home">
-          {header?.show_logo !== false && (business?.logo_url ? <img src={business.logo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <UtensilsCrossed className="h-6 w-6 shrink-0 text-primary" />)}
-          <span className="font-heading text-base font-bold sm:hidden">JayCee</span>
-          <span className="hidden max-w-[13rem] truncate font-heading text-sm font-bold sm:block md:text-base">{business?.business_name || "JayCee Trading & Services"}</span>
+    <header className="site-header" style={{ backgroundColor: headerBackground, color: headerTextColor }}>
+      <div className="site-header__utility"><div className="container site-header__utility-inner"><span className="utility-location"><span className="utility-location__dot" /> Puerto Princesa · Palawan</span><ManilaClock /></div></div>
+      <div className="container site-header__inner">
+        <Link to="/" className="site-brand" aria-label="JayCee Trading and Services home">
+          {header?.show_logo !== false && <img src={logoSrc} alt="" className="site-brand__logo" />}
+          <span className="site-brand__text"><strong>JayCee</strong><small>TRADING &amp; SERVICES</small></span>
         </Link>
 
-        <nav className="hidden items-center gap-5 lg:flex" aria-label="Main navigation">
-          {storyLinks.map((item) => <a key={item.label} href={item.href} className={navClass}>{item.label}</a>)}
+        <nav className="site-nav" aria-label="Main navigation">
+          {storyLinks.map((item) => <a key={item.label} href={item.href}>{item.label}</a>)}
         </nav>
 
-        <div className="flex items-center gap-1">
+        <div className="site-header__actions">
           {enabledSocial.map((item) => {
             const Icon = socialIconMap[item.icon_name as keyof typeof socialIconMap];
-            return Icon ? <Button key={item.id} variant="ghost" size="icon" asChild className="hidden xl:inline-flex"><a href={item.url} target="_blank" rel="noreferrer" aria-label={item.icon_name}><Icon className="h-4 w-4" /></a></Button> : null;
+            return Icon ? <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="header-social" aria-label={item.platform_name}><Icon size={16} /></a> : null;
           })}
-          <Button variant="ghost" size="icon" onClick={() => navigate("/track")} aria-label="My account"><User className="h-4 w-4" /></Button>
-          {header?.show_cart_icon !== false && <Button variant="ghost" size="icon" className="relative" onClick={() => toggleCart()} aria-label={`Cart with ${cartCount} items`}><ShoppingBag className="h-4 w-4" />{cartCount > 0 && <Badge className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center p-0 text-[10px]">{cartCount}</Badge>}</Button>}
-          <Button asChild size="sm" className="hidden sm:inline-flex"><Link to="/order">Order online</Link></Button>
-          {header?.show_admin_icon !== false && <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} aria-label="Admin"><Lock className="h-4 w-4" /></Button>}
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>{mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/track")} aria-label="Track an order" className="header-icon header-track"><User size={17} /></Button>
+          {header?.show_cart_icon !== false && <Button variant="ghost" size="icon" onClick={() => toggleCart()} aria-label={`Cart with ${cartCount} items`} className="header-icon header-cart"><ShoppingBag size={17} />{cartCount > 0 && <Badge className="cart-count">{cartCount}</Badge>}</Button>}
+          <Button asChild className="header-order"><Link to="/order">Order online <ArrowIcon /></Link></Button>
+          <Button variant="ghost" size="icon" className="header-menu-button" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</Button>
         </div>
       </div>
 
       {mobileOpen && (
-        <nav className="border-t border-border bg-background px-4 py-5 lg:hidden" aria-label="Mobile navigation">
-          <div className="container grid gap-1 px-0">
-            {storyLinks.map((item) => <a key={item.label} href={item.href} onClick={closeMenu} className="border-b border-border py-3 font-heading text-base font-semibold">{item.label}</a>)}
-            <Link to="/order" onClick={closeMenu} className="mt-4 flex min-h-11 items-center justify-center bg-primary px-5 text-sm font-bold text-primary-foreground">Order online</Link>
-          </div>
+        <nav className="site-mobile-nav" aria-label="Mobile navigation">
+          {storyLinks.map((item) => <a key={item.label} href={item.href} onClick={closeMenu}>{item.label}</a>)}
+          <Link to="/order" onClick={closeMenu} className="site-mobile-nav__order">Order online <ArrowIcon /></Link>
         </nav>
       )}
     </header>
   );
+}
+
+function ArrowIcon() {
+  return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M10 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

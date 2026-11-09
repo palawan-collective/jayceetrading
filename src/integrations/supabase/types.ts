@@ -20,6 +20,18 @@ export type Database = {
           business_email: string
           business_name: string
           business_phone: string
+          hero_title_line1: string
+          hero_title_line2: string
+          hero_intro: string
+          site_tagline: string
+          hero_image_url: string | null
+          brand_red: string
+          brand_yellow: string
+          brand_green: string
+          brand_charcoal: string
+          brand_sand: string
+          heading_font: string
+          body_font: string
           confirmation_email_template: string
           confirmation_whatsapp_template: string
           copyright_text: string
@@ -39,6 +51,18 @@ export type Database = {
           business_email?: string
           business_name?: string
           business_phone?: string
+          hero_title_line1?: string
+          hero_title_line2?: string
+          hero_intro?: string
+          site_tagline?: string
+          hero_image_url?: string | null
+          brand_red?: string
+          brand_yellow?: string
+          brand_green?: string
+          brand_charcoal?: string
+          brand_sand?: string
+          heading_font?: string
+          body_font?: string
           confirmation_email_template?: string
           confirmation_whatsapp_template?: string
           copyright_text?: string
@@ -58,6 +82,18 @@ export type Database = {
           business_email?: string
           business_name?: string
           business_phone?: string
+          hero_title_line1?: string
+          hero_title_line2?: string
+          hero_intro?: string
+          site_tagline?: string
+          hero_image_url?: string | null
+          brand_red?: string
+          brand_yellow?: string
+          brand_green?: string
+          brand_charcoal?: string
+          brand_sand?: string
+          heading_font?: string
+          body_font?: string
           confirmation_email_template?: string
           confirmation_whatsapp_template?: string
           copyright_text?: string

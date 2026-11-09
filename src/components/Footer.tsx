@@ -1,33 +1,63 @@
 import { Link, useLocation } from "react-router-dom";
-import { Facebook, Instagram, Mail, MapPin, Phone, UtensilsCrossed } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, Phone, Facebook, Instagram, Youtube, Linkedin, MessageCircle, Music2, Send, Globe } from "lucide-react";
 import { useBusinessSettings, useFooterSettings, useSocialLinks } from "@/hooks/use-settings";
 
-const rangeLinks = ["Meats", "Dairy & Cheese", "Sausages & Cold Cuts", "Seafood", "Frozen & Fries", "Baking & Pantry"];
+const serviceAreas = ["Puerto Princesa", "Port Barton", "San Vicente", "Roxas", "Sabang", "Taytay", "El Nido"];
+const socialIconMap = { facebook: Facebook, instagram: Instagram, youtube: Youtube, linkedin: Linkedin, whatsapp: MessageCircle, tiktok: Music2, telegram: Send, globe: Globe };
 
 export default function Footer() {
   const location = useLocation();
   const { data: business } = useBusinessSettings();
   const { data: footer } = useFooterSettings();
-  const { data: social } = useSocialLinks();
-
+  const { data: social = [] } = useSocialLinks();
   if (location.pathname.startsWith("/admin")) return null;
 
+  const address = business?.business_address || "Unit 5, Ground Floor Daniel Business Alley, Corner Libis San Pedro, Puerto Princesa, Palawan";
+  const phone = business?.business_phone || "009771167555";
+  const email = business?.business_email || "info@jayceetrading.com";
+  const year = new Date().getFullYear();
+  const storedFooterBackground = footer?.footer_background_color?.toLowerCase();
+  const storedFooterText = footer?.footer_text_color?.toLowerCase();
+  const footerBackground = storedFooterBackground === "#1e293b" || storedFooterBackground === "#222222" || storedFooterBackground === "#171916" ? "#ffffff" : footer?.footer_background_color || "#ffffff";
+  const footerTextColor = storedFooterText === "#94a3b8" || storedFooterText === "#f4f1e8" || storedFooterText === "#ffffff" ? "#222222" : footer?.footer_text_color || "#222222";
+  const logoSrc = business?.logo_url?.includes("transparent=1") ? business.logo_url : "/images/brand/jaycee-logo-transparent.png";
+
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="container grid gap-10 px-4 py-12 md:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <Link to="/" className="flex items-center gap-2 font-heading font-bold">
-            {business?.logo_url ? <img src={business.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <UtensilsCrossed className="h-6 w-6 text-primary" />}
-            <span>{business?.business_name || "JayCee Trading & Services"}</span>
+    <footer className="site-footer" style={{ backgroundColor: footerBackground, color: footerTextColor }}>
+      <div className="container site-footer__main">
+        <div className="footer-brand-block">
+          <Link to="/" className="site-brand site-brand--footer" aria-label="JayCee home">
+            <img src={logoSrc} alt="" className="site-brand__logo" />
+            <span className="site-brand__text"><strong>JayCee</strong><small>TRADING &amp; SERVICES</small></span>
           </Link>
-          <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">Quality food. Personal service. Proudly Palawan.</p>
-          {footer?.show_social_icons !== false && <div className="mt-5 flex gap-2">{social?.filter((item) => item.is_enabled).map((item) => { const Icon = item.icon_name === "facebook" ? Facebook : item.icon_name === "instagram" ? Instagram : Mail; return <a key={item.id} href={item.url} target="_blank" rel="noreferrer" aria-label={item.icon_name} className="grid h-9 w-9 place-items-center border border-border transition-colors hover:border-primary hover:text-primary"><Icon className="h-4 w-4" /></a>; })}</div>}
+          <p>{business?.site_tagline || "More than a supplier. A partner in your success."}</p>
+          <span className="footer-location">Puerto Princesa · Palawan</span>
         </div>
-        <div><h2 className="text-xs font-bold uppercase text-primary">Explore</h2><nav className="mt-4 grid gap-2 text-sm"><a href="/#products" className="hover:text-primary">Products</a><a href="/#wholesale" className="hover:text-primary">Wholesale</a><a href="/#about" className="hover:text-primary">About</a><a href="/#delivery" className="hover:text-primary">Delivery</a><a href="/#faqs" className="hover:text-primary">FAQs</a><a href="/#contact" className="hover:text-primary">Contact</a></nav></div>
-        <div><h2 className="text-xs font-bold uppercase text-primary">Product range</h2><div className="mt-4 grid gap-2 text-sm">{rangeLinks.map((item) => <Link key={item} to={`/order?category=${encodeURIComponent(item)}`} className="hover:text-primary">{item}</Link>)}</div></div>
-        <div><h2 className="text-xs font-bold uppercase text-primary">Contact</h2><div className="mt-4 space-y-3 text-sm text-muted-foreground">{business?.business_address && <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{business.business_address}</p>}{business?.business_phone && <a href={`tel:${business.business_phone}`} className="flex gap-2 hover:text-foreground"><Phone className="h-4 w-4 shrink-0 text-primary" />{business.business_phone}</a>}{business?.business_email && <a href={`mailto:${business.business_email}`} className="flex break-all gap-2 hover:text-foreground"><Mail className="h-4 w-4 shrink-0 text-primary" />{business.business_email}</a>}</div></div>
+        <div className="footer-column"><h2>Explore</h2><a href="/#story">Our story</a><a href="/#products">Products</a><a href="/#partners">Our partners</a><a href="/#delivery">Delivery areas</a><a href="/#contact">Contact us</a></div>
+        <div className="footer-column"><h2>Where we deliver</h2>{serviceAreas.map((area) => <a href="/#delivery" key={area}>{area}</a>)}</div>
+        {footer?.show_contact_info !== false && (
+          <div className="footer-column footer-contact">
+            <h2>Let’s talk</h2>
+            <a href={`tel:${phone}`}><Phone size={15} />{phone}</a>
+            <a href={`mailto:${email}`}><Mail size={15} />{email}</a>
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer"><MapPin size={15} />Puerto Princesa, Palawan <ArrowUpRight size={13} /></a>
+            {footer?.show_social_icons !== false && (
+              <div className="footer-social-links">
+                {social.filter((item) => item.is_enabled).map((item) => {
+                  const Icon = socialIconMap[item.icon_name as keyof typeof socialIconMap] ?? Globe;
+                  return <a key={item.id} href={item.url} target="_blank" rel="noreferrer" aria-label={item.platform_name} title={item.platform_name}><Icon size={16} /></a>;
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <div className="border-t border-border"><div className="container flex flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><p>{footer?.copyright_text || business?.copyright_text || "© 2026 JayCee Trading & Services. All rights reserved."}</p><div className="flex gap-5"><Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link><Link to="/track" className="hover:text-foreground">My Account</Link></div></div></div>
+      <div className="site-footer__bottom">
+        <div className="container">
+          <p>{footer?.copyright_text || business?.copyright_text || `© ${year} JayCee Trading & Services. All rights reserved.`}</p>
+          <div><Link to="/privacy-policy">Privacy</Link><Link to="/track">Track an order</Link><Link to="/admin" className="footer-staff-link">Staff portal</Link></div>
+        </div>
+      </div>
     </footer>
   );
 }

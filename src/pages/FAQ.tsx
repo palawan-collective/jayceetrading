@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import TypewriterAnswer from "@/components/TypewriterAnswer";
 
 export default function FAQ() {
   const { data: faqs, isLoading } = useQuery({
@@ -29,7 +30,7 @@ export default function FAQ() {
                 {faq.question}
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                {faq.answer}
+                <TypewriterAnswer text={faq.answer} />
               </AccordionContent>
             </AccordionItem>
           ))}
