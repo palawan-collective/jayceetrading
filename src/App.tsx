@@ -11,6 +11,7 @@ import CartDrawer from "@/components/CartDrawer";
 import { useEffect } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
 
+const AdminAccess = lazy(() => import("@/components/admin/AdminAccess"));
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const OrderOnline = lazy(() => import("./pages/OrderOnline"));
@@ -88,22 +89,23 @@ const App = () => (
                   <Route path="/invoice/:orderId" element={<Invoice />} />
                   <Route path="/:slug" element={<DynamicPage />} />
 
-                  {/* Admin tools remain available, loaded only when requested */}
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-                  <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
-                  <Route path="/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
-                  <Route path="/admin/settings" element={<AdminLayout><AdminSettings /></AdminLayout>} />
-                  <Route path="/admin/specials" element={<AdminLayout><AdminSpecials /></AdminLayout>} />
-                  <Route path="/admin/payments" element={<AdminLayout><AdminPayments /></AdminLayout>} />
-                  <Route path="/admin/pages" element={<AdminLayout><AdminPages /></AdminLayout>} />
-                  <Route path="/admin/reviews" element={<AdminLayout><AdminTestimonials /></AdminLayout>} />
-                  <Route path="/admin/newsletter" element={<AdminLayout><AdminNewsletter /></AdminLayout>} />
-                  <Route path="/admin/contacts" element={<AdminLayout><AdminContacts /></AdminLayout>} />
-                  <Route path="/admin/header-footer" element={<AdminLayout><AdminHeaderFooter /></AdminLayout>} />
-                  <Route path="/admin/loyalty" element={<AdminLayout><AdminLoyalty /></AdminLayout>} />
-                  <Route path="/admin/categories" element={<AdminLayout><AdminCategories /></AdminLayout>} />
-                  <Route path="/admin/units" element={<AdminLayout><AdminUnits /></AdminLayout>} />
+                  <Route element={<AdminAccess />}>
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+                    <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
+                    <Route path="/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
+                    <Route path="/admin/settings" element={<AdminLayout><AdminSettings /></AdminLayout>} />
+                    <Route path="/admin/specials" element={<AdminLayout><AdminSpecials /></AdminLayout>} />
+                    <Route path="/admin/payments" element={<AdminLayout><AdminPayments /></AdminLayout>} />
+                    <Route path="/admin/pages" element={<AdminLayout><AdminPages /></AdminLayout>} />
+                    <Route path="/admin/reviews" element={<AdminLayout><AdminTestimonials /></AdminLayout>} />
+                    <Route path="/admin/newsletter" element={<AdminLayout><AdminNewsletter /></AdminLayout>} />
+                    <Route path="/admin/contacts" element={<AdminLayout><AdminContacts /></AdminLayout>} />
+                    <Route path="/admin/header-footer" element={<AdminLayout><AdminHeaderFooter /></AdminLayout>} />
+                    <Route path="/admin/loyalty" element={<AdminLayout><AdminLoyalty /></AdminLayout>} />
+                    <Route path="/admin/categories" element={<AdminLayout><AdminCategories /></AdminLayout>} />
+                    <Route path="/admin/units" element={<AdminLayout><AdminUnits /></AdminLayout>} />
+                  </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
