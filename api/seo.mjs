@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 
-const publishedSite = "https://jaycee-updatednov9.vercel.app";
+const publishedSite = "https://jaycee.merqato.digital";
 const philippineMarket = { locationCode: 2608, languageCode: "en" };
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
