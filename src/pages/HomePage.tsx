@@ -179,7 +179,7 @@ export default function HomePage() {
   });
   const faqItems = faqs?.length ? faqs : fallbackFaqs;
   const phone = business?.business_phone || "009771167555";
-  const email = business?.business_email || "info@jayceetrading.com";
+  const email = business?.business_email || "tradingjaycee@gmail.com";
   const address = business?.business_address || "Unit 5, Ground Floor Daniel Business Alley, Corner Libis San Pedro, Puerto Princesa, Palawan";
   const [partnershipOpen, setPartnershipOpen] = useState(false);
   const openPartnership = () => setPartnershipOpen(true);
