@@ -14,7 +14,7 @@ export default function Footer() {
 
   const address = business?.business_address || "Unit 5, Ground Floor Daniel Business Alley, Corner Libis San Pedro, Puerto Princesa, Palawan";
   const phone = business?.business_phone || "009771167555";
-  const email = business?.business_email || "info@jayceetrading.com";
+  const email = business?.business_email || "tradingjaycee@gmail.com";
   const year = new Date().getFullYear();
   const storedFooterBackground = footer?.footer_background_color?.toLowerCase();
   const storedFooterText = footer?.footer_text_color?.toLowerCase();

@@ -51,7 +51,7 @@ export default function PartnershipInquiryDialog({ open, onOpenChange }: Partner
     ];
     const body = fields.map(([label, value]) => `${label}: ${String(value ?? "").trim()}`).join("\n\n");
     const subject = `Partnership enquiry from ${String(formData.get("business") || formData.get("name"))}`;
-    const emailDraft = `mailto:frontdesk@jayceetrading.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const emailDraft = `mailto:tradingjaycee@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     setSubmitting(true);
     setFallback("");
@@ -87,7 +87,7 @@ export default function PartnershipInquiryDialog({ open, onOpenChange }: Partner
             <span className="partnership-confirmation__icon"><Check size={24} /></span>
             <h3>Your enquiry was submitted.</h3>
             <p>Jaycee’s front desk can follow up using the contact details you provided.</p>
-            <a href="mailto:frontdesk@jayceetrading.com" className="partnership-confirmation__email"><Mail size={16} /> Email frontdesk@jayceetrading.com</a>
+            <a href="mailto:tradingjaycee@gmail.com" className="partnership-confirmation__email"><Mail size={16} /> Email tradingjaycee@gmail.com</a>
             <Button type="button" className="brand-button" onClick={() => handleOpenChange(false)}>Done</Button>
           </div>
         ) : (
