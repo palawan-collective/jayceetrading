@@ -5,4 +5,4 @@ Disallow: /checkout
 Disallow: /invoice/
 Disallow: /track
 
-Sitemap: https://jaycee-updatednov9.vercel.app/sitemap.xml
+Sitemap: https://jaycee.merqato.digital/sitemap.xml
