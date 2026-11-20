@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const serviceAreas = ["Puerto Princesa", "Port Barton", "San Vicente", "Roxas", "Sabang", "Taytay", "El Nido"];
@@ -20,15 +21,22 @@ interface PartnershipInquiryDialogProps {
 }
 
 export default function PartnershipInquiryDialog({ open, onOpenChange }: PartnershipInquiryDialogProps) {
-  const [draftReady, setDraftReady] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [fallback, setFallback] = useState("");
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setDraftReady(false);
+    if (submitting) return;
+    if (!nextOpen) {
+      setSubmitted(false);
+      setFallback("");
+    }
     onOpenChange(nextOpen);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting) return;
     const formData = new FormData(event.currentTarget);
     const fields = [
       ["Name", formData.get("name")],
@@ -45,8 +53,22 @@ export default function PartnershipInquiryDialog({ open, onOpenChange }: Partner
     const subject = `Partnership enquiry from ${String(formData.get("business") || formData.get("name"))}`;
     const emailDraft = `mailto:frontdesk@jayceetrading.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-    window.location.href = emailDraft;
-    setDraftReady(true);
+    setSubmitting(true);
+    setFallback("");
+    try {
+      const { error } = await supabase.from("contact_form_submissions").insert({
+        name: String(formData.get("name") ?? "").trim(),
+        email: String(formData.get("email") ?? "").trim(),
+        phone: String(formData.get("phone") ?? "").trim(),
+        message: `${subject}\n\n${body}`,
+      });
+      if (error) throw error;
+      setSubmitted(true);
+    } catch {
+      setFallback(emailDraft);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -56,15 +78,15 @@ export default function PartnershipInquiryDialog({ open, onOpenChange }: Partner
           <span className="partnership-dialog__eyebrow">JayCee Trading &amp; Services</span>
           <DialogTitle className="partnership-dialog__title">Let’s build a great partnership.</DialogTitle>
           <DialogDescription className="partnership-dialog__description">
-            Tell us about your business and what you need. We’ll prepare an email to our front desk for you to review and send.
+            Tell us about your business and what you need. Our front desk will review your enquiry.
           </DialogDescription>
         </DialogHeader>
 
-        {draftReady ? (
+        {submitted ? (
           <div className="partnership-confirmation" role="status" aria-live="polite">
             <span className="partnership-confirmation__icon"><Check size={24} /></span>
-            <h3>Your enquiry is ready to send.</h3>
-            <p>We opened an email draft addressed to <strong>frontdesk@jayceetrading.com</strong>. Please review it and press Send in your email app.</p>
+            <h3>Your enquiry was submitted.</h3>
+            <p>Jaycee’s front desk can follow up using the contact details you provided.</p>
             <a href="mailto:frontdesk@jayceetrading.com" className="partnership-confirmation__email"><Mail size={16} /> Email frontdesk@jayceetrading.com</a>
             <Button type="button" className="brand-button" onClick={() => handleOpenChange(false)}>Done</Button>
           </div>
@@ -127,10 +149,10 @@ export default function PartnershipInquiryDialog({ open, onOpenChange }: Partner
               </label>
             </div>
             <div className="partnership-form__footer">
-              <p><ShieldCheck size={15} /> Your details will be included in an email to JayCee’s front desk.</p>
-              <Button type="submit" className="brand-button">Prepare enquiry <ArrowRight size={16} /></Button>
+              <p><ShieldCheck size={15} /> Your details will be shared with Jaycee’s front desk.</p>
+              <Button type="submit" disabled={submitting} className="brand-button">{submitting ? "Sending…" : "Send enquiry"} <ArrowRight size={16} /></Button>
             </div>
-            <p className="partnership-form__note">Submitting prepares an email for you to review and send from your email app.</p>
+            {fallback && <p role="alert">We could not confirm your submission. Try again or <a className="underline" href={fallback}>email your enquiry</a>.</p>}
           </form>
         )}
       </DialogContent>

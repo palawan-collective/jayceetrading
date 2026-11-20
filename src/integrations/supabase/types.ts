@@ -130,6 +130,11 @@ export type Database = {
       }
       contact_form_submissions: {
         Row: {
+          business_category: string | null
+          business_location: string | null
+          follow_up_notes: string
+          sales_stage: string
+          source_url: string | null
           created_at: string
           email: string
           id: string
@@ -139,6 +144,11 @@ export type Database = {
           phone: string | null
         }
         Insert: {
+          business_category?: string | null
+          business_location?: string | null
+          follow_up_notes?: string
+          sales_stage?: string
+          source_url?: string | null
           created_at?: string
           email: string
           id?: string
@@ -148,6 +158,11 @@ export type Database = {
           phone?: string | null
         }
         Update: {
+          business_category?: string | null
+          business_location?: string | null
+          follow_up_notes?: string
+          sales_stage?: string
+          source_url?: string | null
           created_at?: string
           email?: string
           id?: string

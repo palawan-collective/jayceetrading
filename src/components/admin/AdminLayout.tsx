@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -60,10 +61,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin_auth");
-    window.location.href = "/admin";
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -75,7 +72,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+          <Button variant="ghost" size="icon" onClick={() => void supabase.auth.signOut({ scope: "local" })} title="Logout">
             <LogOut className="h-5 w-5" />
           </Button>
 
