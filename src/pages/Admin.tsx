@@ -10,6 +10,7 @@ import AdminPayments from "@/components/admin/AdminPayments";
 import AdminSpecials from "@/components/admin/AdminSpecials";
 import AdminTestimonials from "@/components/admin/AdminTestimonials";
 import AdminNewsletter from "@/components/admin/AdminNewsletter";
+import AdminSeo from "@/components/admin/AdminSeo";
 import AdminContacts from "@/components/admin/AdminContacts";
 import AdminPages from "@/components/admin/AdminPages";
 import AdminHeaderFooter from "@/components/admin/AdminHeaderFooter";
@@ -82,6 +83,7 @@ export default function Admin() {
           <TabsTrigger value="pages" className="text-[12px] md:text-sm min-h-[44px] px-2">Pages</TabsTrigger>
           <TabsTrigger value="testimonials" className="text-[12px] md:text-sm min-h-[44px] px-2">Reviews</TabsTrigger>
           <TabsTrigger value="newsletter" className="text-[12px] md:text-sm min-h-[44px] px-2">News</TabsTrigger>
+          <TabsTrigger value="seo" className="text-[12px] md:text-sm min-h-[44px] px-2">SEO &amp; Leads</TabsTrigger>
           <TabsTrigger value="contacts" className="text-[12px] md:text-sm min-h-[44px] px-2">Contacts</TabsTrigger>
           <TabsTrigger value="loyalty" className="text-[12px] md:text-sm min-h-[44px] px-2">Loyalty</TabsTrigger>
           <TabsTrigger value="website" className="text-[12px] md:text-sm min-h-[44px] px-2">Website &amp; FAQs</TabsTrigger>
@@ -98,6 +100,7 @@ export default function Admin() {
         <TabsContent value="pages"><AdminPages /></TabsContent>
         <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
         <TabsContent value="newsletter"><AdminNewsletter /></TabsContent>
+        <TabsContent value="seo"><AdminSeo /></TabsContent>
         <TabsContent value="contacts"><AdminContacts /></TabsContent>
         <TabsContent value="website"><AdminSiteEditor /></TabsContent>
         <TabsContent value="header-footer"><AdminHeaderFooter /></TabsContent>
