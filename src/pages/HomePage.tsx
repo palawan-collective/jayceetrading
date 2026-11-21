@@ -257,7 +257,9 @@ export default function HomePage() {
             <div className="hero-note"><span className="hero-note__icon"><Snowflake size={18} /></span><span>Quality products, handled with care.<br /><strong>Locally rooted. Proudly Palawan.</strong></span></div>
           </div>
           <div className="brand-hero__visual" data-reveal>
-            <img src={business?.hero_image_url || "/images/brand/jaycee-store.webp"} alt="JayCee Trading & Services in Palawan" className="hero-store-image" data-parallax fetchPriority="high" />
+            <div className="hero-store-frame">
+              <img src={business?.hero_image_url || "/images/brand/jaycee-store.webp"} alt="JayCee Trading & Services storefront in Puerto Princesa" className="hero-store-image" fetchPriority="high" />
+            </div>
           </div>
         </div>
         <div className="hero-bottom container">
@@ -292,6 +294,16 @@ export default function HomePage() {
 
       <section className="service-section" id="delivery" aria-labelledby="service-title">
         <div className="service-section__map">
+          <div className="service-map-heading">
+            <span className="service-map-heading__eyebrow"><MapPin size={14} /> VISIT JAYCEE</span>
+            <strong>Find us in Puerto Princesa</strong>
+            <span className="service-map-heading__address">{address}</span>
+            <div className="service-map-heading__actions">
+              <a href={mapsHref} target="_blank" rel="noreferrer">Get directions <ArrowUpRight size={16} /></a>
+              <a href={`tel:${phone}`}><Phone size={15} /> Call us</a>
+            </div>
+          </div>
+          <div className="service-map-frame">
           <iframe
             title="Map showing JayCee Trading & Services in Puerto Princesa"
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3932.022030793975!2d118.7521104!3d9.764201!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33b563000ff94ee5%3A0x361d56d8cceee597!2sJayCee%20Trading%20%26%20Services!5e0!3m2!1sen!2sph!4v1794188163026!5m2!1sen!2sph"
@@ -302,8 +314,7 @@ export default function HomePage() {
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"
           />
-          <span className="service-section__map-label"><MapPin size={16} /> JayCee Trading &amp; Services</span>
-          <a className="service-section__map-link" href={mapsHref} target="_blank" rel="noreferrer">Open in Maps <ArrowUpRight size={14} /></a>
+          </div>
         </div>
         <div className="service-section__content" data-reveal>
           <p className="eyebrow">From our doorstep to yours</p>
@@ -356,7 +367,12 @@ export default function HomePage() {
 
       <section className="team-section section-space" aria-labelledby="team-title">
         <div className="container team-layout">
-          <div className="team-mark" data-reveal><Users size={42} strokeWidth={1.2} /><span>GOOD PEOPLE.<br />GOOD SERVICE.</span></div>
+          <div className="team-proof" data-reveal aria-label="How our team helps">
+            <div className="team-proof__intro"><span>THE JAYCEE WAY</span><strong>Real people.<br />Reliable support.</strong></div>
+            <div className="team-proof__item"><HeartHandshake size={23} strokeWidth={1.7} /><span><strong>Personal relationships</strong><small>We listen and learn what your business needs.</small></span></div>
+            <div className="team-proof__item"><Truck size={23} strokeWidth={1.7} /><span><strong>Dependable service</strong><small>A local team that understands Palawan.</small></span></div>
+            <div className="team-proof__item"><PackageCheck size={23} strokeWidth={1.7} /><span><strong>Careful handling</strong><small>Quality matters from storage to delivery.</small></span></div>
+          </div>
           <div className="team-copy" data-reveal><p className="eyebrow">The people behind every order</p><h2 id="team-title">Passionate professionals.<br /><em>Personal service.</em></h2><p>Our team brings experience across sales, marketing, and distribution, with a shared focus on making every customer interaction memorable. We keep learning, improving, and showing up for the people who count on us.</p></div>
         </div>
       </section>
@@ -364,7 +380,7 @@ export default function HomePage() {
       <section className="vision-section" aria-labelledby="vision-title">
         <div className="container">
           <div className="vision-intro" data-reveal><div><p className="eyebrow">Looking forward</p><h2 id="vision-title">Expanding horizons,<br /><em>with Palawan in mind.</em></h2></div><p>We’re working toward becoming the most trusted supplier in Palawan—growing thoughtfully, listening closely, and bringing new ideas to market.</p></div>
-          <div className="ambitions-grid">{ambitions.map(({ icon: Icon, title, copy }, index) => <article className="ambition-card" key={title} data-reveal><span className="ambition-card__number">0{index + 1}</span><Icon size={25} /><h3>{title}</h3><p>{copy}</p></article>)}</div>
+          <div className="ambitions-grid">{ambitions.map(({ icon: Icon, title, copy }, index) => <article className="ambition-card" key={title} data-reveal><div className="ambition-card__top"><span className="ambition-card__icon"><Icon size={24} strokeWidth={1.7} /></span><span className="ambition-card__number">0{index + 1}</span></div><div className="ambition-card__body"><h3>{title}</h3><p>{copy}</p></div><span className="ambition-card__rule" aria-hidden="true" /></article>)}</div>
         </div>
       </section>
 
