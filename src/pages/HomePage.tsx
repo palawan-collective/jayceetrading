@@ -44,6 +44,54 @@ const ambitions = [
   { icon: Leaf, title: "Make thoughtful choices", copy: "Explore practical ways to reduce waste and support more sustainable options." },
 ];
 
+function CategoryShowcaseCard({
+  category, detail, images, index, href,
+}: {
+  category: string; detail: string; images: string[]; index: number; href: string;
+}) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const canRotate = images.length > 1;
+  useEffect(() => {
+    if (!canRotate || paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActive(current => (current + 1) % images.length), 5200 + index * 600);
+    return () => window.clearInterval(timer);
+  }, [canRotate, paused, images.length, index]);
+
+  return (
+    <Link
+      to={href}
+      className={`category-card category-card--${index + 1}`}
+      data-reveal
+      aria-label={`Explore ${category} products`}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <span className="category-card__media" aria-hidden="true">
+        {images.length ? images.map((src, i) => (
+          <img key={src} src={src} alt="" loading="lazy" className={`category-card__image ${i === active ? "is-current" : ""}`}/>
+        )) : <span className="category-card__art">
+          <span className="category-card__number">0{index + 1}</span>
+          <span className="category-card__shape" />
+        </span>}
+      </span>
+      <span className="category-card__shade" aria-hidden="true" />
+      <span className="category-card__copy">
+        <small>{detail}</small>
+        <strong>{category}</strong>
+        <span className="category-card__arrow"><ArrowUpRight size={18}/></span>
+      </span>
+      {canRotate && (
+        <span className="category-card__dots" aria-hidden="true">
+          {images.map((_, i) => <span key={i} className={i === active ? "is-current" : ""}/>)}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function ValueFlipCard({ icon: Icon, title, copy, index }: { icon: LucideIcon; title: string; copy: string; index: number }) {
   const [flipped, setFlipped] = useState(false);
 
@@ -169,10 +217,18 @@ export default function HomePage() {
       imageProducts.find((product) => product.image_url && !usedProductImages.has(product.image_url)) ??
       imageProducts[0];
     if (productImage?.image_url) usedProductImages.add(productImage.image_url);
+    // Rotate only real product photos matching this category, not unrelated fallback items.
+    const matchingImages = imageProducts.filter(product => {
+      const text = `${product.category} ${product.name}`.toLowerCase();
+      return (storedCategory && product.category === storedCategory) ||
+        keywords.some(keyword => text.includes(keyword));
+    }).map(product => product.image_url).filter((url): url is string => Boolean(url));
+    const images = Array.from(new Set(matchingImages)).slice(0, 4);
+    if (!images.length && productImage?.image_url) images.push(productImage.image_url);
     return {
       category,
       detail,
-      image: productImage?.image_url,
+      images,
       index,
       href: storedCategory ? `/order?category=${encodeURIComponent(storedCategory)}` : "/order",
     };
@@ -226,12 +282,8 @@ export default function HomePage() {
             <div className="section-heading__aside"><p>From everyday essentials to kitchen staples, explore a considered range for homes and professional kitchens.</p><Link to="/order" className="text-link">Browse the full catalogue <ArrowRight size={16} /></Link></div>
           </div>
           <div className="category-grid">
-            {categories.map(({ category, detail, image, index, href }) => (
-              <Link key={category} to={href} className={`category-card category-card--${index + 1}`} data-reveal>
-                {image ? <img src={image} alt={`${category} from JayCee's product range`} loading="lazy" /> : <div className="category-card__art"><span className="category-card__number">0{index + 1}</span><span className="category-card__shape" /></div>}
-                <span className="category-card__shade" />
-                <span className="category-card__copy"><small>{detail}</small><strong>{category}</strong><span className="category-card__arrow"><ArrowUpRight size={18} /></span></span>
-              </Link>
+            {categories.map(({ category, detail, images, index, href }) => (
+              <CategoryShowcaseCard key={category} category={category} detail={detail} images={images} index={index} href={href}/>
             ))}
           </div>
           <div className="catalogue-note"><PackageCheck size={19} /><p>Looking for a particular item? <Link to="/order">Explore all available products</Link> or <button type="button" className="inline-text-button" onClick={openPartnership}>talk to our team</button>.</p></div>

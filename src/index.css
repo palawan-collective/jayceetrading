@@ -645,3 +645,138 @@
   .site-brand__text strong { font-size: 16px; }
   .site-brand__text small { letter-spacing: .08em; }
 }
+
+/* JayCee 2026 finishing pass: consistent radii and restrained motion.
+   Public storefront only: do not change admin or checkout controls. */
+.marketing-page .brand-button,
+.marketing-page .brand-outline-button,
+.marketing-page .contact-order-button,
+.site-header .header-order,
+.site-mobile-nav__order,
+.site-mobile-nav__secondary {
+  border-radius: 12px !important;
+}
+.marketing-page .service-section__map-link {
+  border-radius: 10px;
+  font-size: 12px;
+  min-height: 44px;
+  padding: 11px 15px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+  transition: transform .22s ease, background-color .22s ease, box-shadow .22s ease;
+}
+.marketing-page .service-section__map-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
+}
+.marketing-page .service-section__map-label { border-radius: 10px; }
+.marketing-page .service-locations span { border-radius: 9px; }
+.marketing-page .contact-card { border-radius: 16px; }
+.marketing-page .contact-detail { border-radius: 8px; }
+.marketing-page .contact-detail:hover { background: rgb(255 255 255 / 40%); }
+.marketing-page .category-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+.marketing-page .category-card,
+.marketing-page .category-card:nth-child(even),
+.marketing-page .category-card:nth-child(odd) {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #283126;
+  box-shadow: 0 10px 26px rgb(26 30 22 / 8%);
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
+}
+.marketing-page .category-card__media,
+.marketing-page .category-card__media .category-card__art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+}
+.marketing-page .category-card__image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0;
+  transform: scale(1);
+  transition: opacity .9s ease, transform 1.2s cubic-bezier(.2,.7,.2,1);
+}
+.marketing-page .category-card__image.is-current { opacity: 1; }
+.marketing-page .category-card__shade {
+  background: linear-gradient(180deg, rgb(13 20 17 / 6%) 25%, rgb(11 17 12 / 32%) 52%, rgb(9 13 10 / 91%) 100%);
+  transition: background .3s ease;
+}
+.marketing-page .category-card__copy { left: 22px; right: 18px; bottom: 24px; gap: 8px; z-index: 2; }
+.marketing-page .category-card__copy small { font-size: 10px; line-height: 1.45; letter-spacing: .1em; color: rgb(255 255 255 / 85%); }
+.marketing-page .category-card__copy strong { max-width: calc(100% - 42px); font-size: clamp(18px, 1.75vw, 24px); line-height: 1.16; color: white; text-wrap: balance; }
+.marketing-page .category-card__arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border-color: rgb(255 255 255 / 65%);
+  background: rgb(255 255 255 / 12%);
+}
+.marketing-page .category-card__dots {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 5px;
+}
+.marketing-page .category-card__dots > span {
+  width: 6px; height: 6px; border-radius: 50%; background: rgb(255 255 255 / 45%);
+  transition: width .3s ease, background-color .3s ease;
+}
+.marketing-page .category-card__dots > span.is-current { width: 17px; border-radius: 6px; background: #fff; }
+@media (hover: hover) and (pointer: fine) {
+  .marketing-page .category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 22px 45px rgb(21 27 18 / 17%);
+  }
+  .marketing-page .category-card:hover .category-card__image.is-current { transform: scale(1.065); }
+  .marketing-page .category-card:hover .category-card__arrow { transform: translate(2px, -2px); border-color: var(--brand-yellow, #ffc107); }
+}
+.marketing-page .category-card:focus-visible { outline: 3px solid var(--brand-red, #e11d2e); outline-offset: 4px; }
+@media (max-width: 1020px) {
+  .marketing-page .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .marketing-page .category-card__copy strong { font-size: clamp(18px, 2.5vw, 25px); }
+}
+@media (max-width: 600px) {
+  .marketing-page .category-grid { gap: 12px; }
+  .marketing-page .category-card,
+  .marketing-page .category-card:nth-child(even),
+  .marketing-page .category-card:nth-child(odd) {
+    aspect-ratio: 3 / 4;
+  }
+  .marketing-page .category-card__copy { left: 13px; right: 12px; bottom: 14px; gap: 5px; }
+  .marketing-page .category-card__copy small { font-size: 8px; letter-spacing: .055em; line-height: 1.3; }
+  .marketing-page .category-card__copy strong { font-size: clamp(15px, 4.15vw, 21px); max-width: calc(100% - 32px); }
+  .marketing-page .category-card__arrow { width: 30px; height: 30px; border-radius: 9px; }
+  .marketing-page .category-card__dots { top: 11px; right: 10px; gap: 4px; }
+  .marketing-page .category-card__dots > span { width: 5px; height: 5px; }
+  .marketing-page .category-card__dots > span.is-current { width: 12px; }
+}
+@media (max-width: 360px) {
+  .marketing-page .category-grid { gap: 9px; }
+  .marketing-page .category-card__copy strong { font-size: 15px; }
+  .marketing-page .category-card__copy small { font-size: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-page .category-card,
+  .marketing-page .category-card__image,
+  .marketing-page .category-card__arrow,
+  .marketing-page .service-section__map-link { transform: none !important; transition: none !important; }
+}
