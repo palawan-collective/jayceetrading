@@ -968,3 +968,76 @@
   }
   .site-footer__bottom a { font-size: 12px; padding-block: 4px; }
 }
+
+/* JayCee header + storefront: responsive editorial treatment (Nov 21). */
+.manila-clock__mobile-time { display: none; }
+.marketing-page .hero-store-frame { isolation: isolate; }
+.marketing-page .hero-store-frame::after {
+  content: ""; pointer-events: none; position: absolute; inset: 38% 0 0;
+  background: linear-gradient(transparent 34%, rgba(9,23,20,.72) 100%);
+  z-index: 1;
+}
+.marketing-page .hero-store-caption {
+  position: absolute; z-index: 2; bottom: clamp(16px,3vw,30px); left: clamp(16px,3vw,30px);
+  display: grid; grid-template-columns: 8px auto; column-gap: 10px; row-gap: 3px;
+  align-items: center; color: white; text-shadow: 0 1px 10px rgba(0,0,0,.28);
+}
+.marketing-page .hero-store-caption__dot {
+  background: #ffc107; border-radius: 50%; width: 7px; height: 7px;
+  grid-row: span 2; box-shadow: 0 0 0 4px rgba(255,193,7,.17);
+}
+.marketing-page .hero-store-caption strong { font-size: 10px; line-height: 1.2; letter-spacing: .17em; }
+.marketing-page .hero-store-caption small { font-size: 11px; font-weight: 550; letter-spacing: .02em; }
+@media (max-width: 900px) {
+  .site-header { box-shadow: 0 5px 24px rgba(25,33,27,.07); }
+  .site-header__utility { background: #f7f5ef; border-bottom: 1px solid #e8e5dc; }
+  .site-header__utility-inner { min-height: 35px; }
+  .site-header__inner { min-height: 70px; }
+  .site-header__actions { gap: 10px; }
+  .header-icon, .header-menu-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 44px !important; min-height: 44px !important; border-radius: 50% !important;
+  }
+  .header-menu-button { background: #f4f1e8 !important; }
+  .site-mobile-nav { box-shadow: 0 18px 24px rgba(34,34,34,.07); }
+}
+@media (max-width: 760px) {
+  .site-header__utility-inner { width: min(100% - 2rem, 600px); min-height: 32px; }
+  .utility-location { font-size: 9px; letter-spacing: .07em; font-weight: 750; }
+  .manila-clock { gap: 5px; }
+  .manila-clock__zone { font-size: 0; letter-spacing: 0; }
+  .manila-clock__zone svg { width: 14px; height: 14px; }
+  .manila-clock__time { font-size: 10px; letter-spacing: 0; font-weight: 750; white-space: nowrap; }
+  .manila-clock__desktop-time, .manila-clock__date { display: none !important; }
+  .manila-clock__mobile-time { display: inline; }
+  .site-header__inner { min-height: 68px; }
+  .site-brand__logo { width: 44px; height: 44px; }
+  .site-brand__text strong { font-size: 18px; }
+  .site-header__actions { gap: 7px; }
+  .brand-hero__visual { margin-inline: -2px; }
+  .marketing-page .hero-store-frame {
+    aspect-ratio: 1.12 / 1; max-height: none; min-height: 280px;
+    border-radius: 14px; box-shadow: 0 24px 45px rgba(34,34,34,.19);
+    border: 1px solid rgba(255,255,255,.7);
+  }
+  .marketing-page .hero-store-frame .hero-store-image {
+    object-position: center 46%; animation: jayceeMobileZoomV2 15s ease-in-out infinite alternate;
+  }
+  .marketing-page .hero-store-caption { bottom: 18px; left: 18px; }
+  .brand-hero__inner { gap: 24px; }
+  .brand-hero h1 { font-size: clamp(43px,11.6vw,65px); }
+}
+@media (max-width: 370px) {
+  .site-brand__text strong { font-size: 16px; }
+  .site-brand__text small { font-size: 6px; }
+  .site-brand__logo { width: 39px; height: 39px; }
+  .utility-location { font-size: 8px; }
+  .site-header__actions { gap: 0; }
+}
+@keyframes jayceeMobileZoomV2 {
+  from { transform: scale(1.05) translateY(0); }
+  to { transform: scale(1.17) translateY(-1.8%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-page .hero-store-frame .hero-store-image { animation: none !important; transform: scale(1.08) !important; }
+}
