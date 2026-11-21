@@ -780,3 +780,85 @@
   .marketing-page .category-card__arrow,
   .marketing-page .service-section__map-link { transform: none !important; transition: none !important; }
 }
+
+/* JayCee responsive art direction — Nov 21. Scoped to marketing page. */
+.marketing-page .hero-store-frame {
+  position: relative; overflow: hidden; width: 100%; aspect-ratio: 1.32 / 1;
+  background: #ebe8df; isolation: isolate;
+  box-shadow: 0 18px 40px rgb(34 34 34 / 11%);
+}
+.marketing-page .hero-store-frame .hero-store-image {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0;
+  border: 0; display: block; object-fit: cover; object-position: center 40%;
+  transform: scale(1.11); transition: transform 8s ease-in-out; will-change: transform;
+}
+.marketing-page .service-section__map { display: flex; flex-direction: column; overflow: hidden; background: #f4f1e8; }
+.marketing-page .service-map-heading { display: grid; gap: 9px; padding: 32px; background: #fff; }
+.marketing-page .service-map-heading__eyebrow { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--brand-green, #0b7d32); }
+.marketing-page .service-map-heading > strong { color: #20231f; font-size: clamp(19px, 2vw, 25px); line-height: 1.2; letter-spacing: -.04em; }
+.marketing-page .service-map-heading__address { font-size: 12px; color: #646760; line-height: 1.6; }
+.marketing-page .service-map-heading__actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+.marketing-page .service-map-heading__actions a { display: inline-flex; justify-content: center; align-items: center; gap: 9px; min-height: 44px; border-radius: 10px; padding: 10px 15px; font-size: 12px; font-weight: 750; background: #222; color: #fff; }
+.marketing-page .service-map-heading__actions a + a { background: #f3f1e9; color: #20231f; border: 1px solid #e2dfd4; }
+.marketing-page .service-map-frame { position: relative; flex: 1; min-height: 295px; overflow: hidden; }
+.marketing-page .service-map-frame iframe { width: 100%; height: 100%; min-height: 295px; display: block; border: 0; }
+.marketing-page .team-layout { grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: clamp(35px,6vw,80px); }
+.marketing-page .team-proof { display: grid; padding: clamp(23px,3vw,35px); gap: 0; background: #f4f1e8; border: 1px solid #e5e0d4; border-radius: 18px; box-shadow: 0 14px 36px rgb(0 0 0 / 4%); }
+.marketing-page .team-proof__intro { display: grid; gap: 10px; padding-bottom: 22px; border-bottom: 1px solid #dbd8cb; }
+.marketing-page .team-proof__intro > span { font-weight: 800; letter-spacing: .18em; font-size: 10px; color: #0b7d32; }
+.marketing-page .team-proof__intro > strong { font-size: clamp(23px,2.5vw,34px); letter-spacing: -.055em; line-height: 1.12; }
+.marketing-page .team-proof__item { display: flex; align-items: flex-start; gap: 16px; padding: 18px 0; border-bottom: 1px solid #dbd8cb; }
+.marketing-page .team-proof__item:last-child { border-bottom: 0; padding-bottom: 0; }
+.marketing-page .team-proof__item > svg { flex: none; color: #0b7d32; margin-top: 1px; }
+.marketing-page .team-proof__item > span { display: grid; gap: 4px; }
+.marketing-page .team-proof__item strong { font-size: 13px; font-weight: 750; }
+.marketing-page .team-proof__item small { font-size: 12px; line-height: 1.55; color: #646760; }
+.marketing-page .ambitions-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; border: 0; }
+.marketing-page .ambition-card, .marketing-page .ambition-card:first-child {
+  min-height: 245px; padding: 25px; border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 16px; background: rgb(0 56 25 / 19%); display: flex; flex-direction: column;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 11%);
+}
+.marketing-page .ambition-card:nth-child(2) { background: rgb(255 255 255 / 11%); }
+.marketing-page .ambition-card:nth-child(3) { background: rgb(0 37 19 / 25%); }
+.marketing-page .ambition-card__top { display: flex; justify-content: space-between; align-items: center; }
+.marketing-page .ambition-card__icon { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 12%); color: var(--brand-yellow, #ffc107); }
+.marketing-page .ambition-card__top .ambition-card__number { position: static; font-size: 11px; color: #fff; opacity: .75; }
+.marketing-page .ambition-card__body { margin-top: auto; padding-top: 24px; }
+.marketing-page .ambition-card__body h3 { font-size: clamp(19px,1.65vw,24px); line-height: 1.22; margin: 0 0 11px; }
+.marketing-page .ambition-card__body p { max-width: 35ch; color: rgb(255 255 255 / 85%); font-size: 12px; line-height: 1.7; }
+.marketing-page .ambition-card__rule { display: block; height: 2px; width: 42px; background: var(--brand-yellow,#ffc107); margin-top: 25px; }
+@media (max-width: 1020px) {
+  .marketing-page .team-layout { grid-template-columns: 1fr 1fr; gap: 30px; }
+  .marketing-page .ambitions-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .marketing-page .ambition-card { padding: 20px; }
+}
+@media (max-width: 760px) {
+  .marketing-page .hero-store-frame { aspect-ratio: 1.4 / 1; max-height: 300px; border-radius: 12px; }
+  .marketing-page .hero-store-frame .hero-store-image { object-position: center 28%; animation: jayceeMobileZoom 12s ease-in-out infinite alternate; }
+  .marketing-page .service-section { display: flex; flex-direction: column; gap: 0; background: #f4f1e8; }
+  .marketing-page .service-section__map { order: 2; width: min(100% - 2rem,600px); min-height: 0; margin: 0 auto 32px; border-radius: 18px; overflow: hidden; border: 1px solid #e1ddd3; box-shadow: 0 12px 36px rgb(20 20 20 / 8%); }
+  .marketing-page .service-section__content { order: 1; padding: 46px 0 28px; }
+  .marketing-page .service-map-heading { padding: 21px 20px; gap: 7px; }
+  .marketing-page .service-map-heading > strong { font-size: 22px; }
+  .marketing-page .service-map-heading__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .marketing-page .service-map-heading__actions a { font-size: 11px; padding-inline: 9px; white-space: nowrap; }
+  .marketing-page .service-map-frame { height: 225px; min-height: 225px; flex: none; }
+  .marketing-page .service-map-frame iframe { height: 225px; min-height: 225px; }
+  .marketing-page .team-layout { display: flex; flex-direction: column-reverse; gap: 24px; }
+  .marketing-page .team-proof { width: 100%; padding: 22px; }
+  .marketing-page .team-proof__intro > strong { font-size: 25px; }
+  .marketing-page .team-copy > p:last-child { font-size: 13px; line-height: 1.75; }
+  .marketing-page .ambitions-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .marketing-page .ambition-card, .marketing-page .ambition-card:first-child { min-height: 0; padding: 20px 22px; border: 1px solid rgb(255 255 255 / 24%); border-radius: 16px; }
+  .marketing-page .ambition-card:nth-child(2) { margin-left: 16px; }
+  .marketing-page .ambition-card:nth-child(3) { margin-right: 16px; }
+  .marketing-page .ambition-card__body { padding-top: 16px; }
+  .marketing-page .ambition-card__body h3 { font-size: 20px; margin-bottom: 8px; }
+  .marketing-page .ambition-card__body p { font-size: 12px; }
+  .marketing-page .ambition-card__rule { margin-top: 16px; }
+}
+@keyframes jayceeMobileZoom { from { transform: scale(1.1); } to { transform: scale(1.19); } }
+@media (prefers-reduced-motion: reduce) {
+  .marketing-page .hero-store-frame .hero-store-image { animation: none !important; transform: scale(1.11); }
+}
