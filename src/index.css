@@ -862,3 +862,109 @@
 @media (prefers-reduced-motion: reduce) {
   .marketing-page .hero-store-frame .hero-store-image { animation: none !important; transform: scale(1.11); }
 }
+
+
+/* JayCee footer: compact, intentional layout for tablet and mobile. */
+@media (min-width: 601px) and (max-width: 900px) {
+  .site-footer__main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+    row-gap: 30px;
+    padding-block: 38px 32px;
+  }
+  .site-footer__main .footer-brand-block { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .site-footer__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-block: 30px 26px;
+  }
+  .site-footer__main .footer-brand-block {
+    grid-column: 1;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgb(34 34 34 / 12%);
+  }
+  .site-footer .site-brand--footer .site-brand__logo { width: 49px; height: 49px; }
+  .site-footer .footer-brand-block > p {
+    margin: 12px 0 6px;
+    font-size: 16px;
+    line-height: 1.35;
+    max-width: 36ch;
+  }
+  .site-footer .footer-location { font-size: 10px; letter-spacing: .06em; }
+  .site-footer__main > .footer-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 14px;
+    row-gap: 0;
+    align-content: start;
+    padding: 22px 0;
+    border-bottom: 1px solid rgb(34 34 34 / 12%);
+    min-width: 0;
+  }
+  .site-footer__main > .footer-column h2 {
+    grid-column: 1 / -1;
+    margin: 0 0 12px;
+    font-size: 11px;
+    letter-spacing: .13em;
+    line-height: 1.35;
+  }
+  .site-footer__main > .footer-column > a {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    min-height: 40px;
+    font-size: 13px;
+    line-height: 1.35;
+    padding: 6px 0;
+    opacity: .85;
+  }
+  .site-footer__main > .footer-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-bottom: none;
+    padding-bottom: 4px;
+  }
+  .site-footer__main > .footer-contact h2 { margin-bottom: 12px; }
+  .site-footer__main > .footer-contact > a {
+    width: 100%;
+    min-height: 40px;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    gap: 12px;
+  }
+  .site-footer__main > .footer-contact > a svg { flex-shrink: 0; }
+  .site-footer .footer-social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  .site-footer .footer-social-links a {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+  .site-footer__bottom .container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+    min-height: 0;
+    padding-block: 18px 22px;
+  }
+  .site-footer__bottom p {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .site-footer__bottom .container > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+  }
+  .site-footer__bottom a { font-size: 12px; padding-block: 4px; }
+}
