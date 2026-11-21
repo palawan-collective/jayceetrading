@@ -259,6 +259,7 @@ export default function HomePage() {
           <div className="brand-hero__visual" data-reveal>
             <div className="hero-store-frame">
               <img src={business?.hero_image_url || "/images/brand/jaycee-store.webp"} alt="JayCee Trading & Services storefront in Puerto Princesa" className="hero-store-image" fetchPriority="high" />
+              <span className="hero-store-caption"><span className="hero-store-caption__dot" /> <strong>OUR HOME BASE</strong><small>Puerto Princesa · Palawan</small></span>
             </div>
           </div>
         </div>
