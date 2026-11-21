@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { useBusinessSettings } from "@/hooks/use-settings";
 
 const AdminAccess = lazy(() => import("@/components/admin/AdminAccess"));
@@ -66,6 +66,19 @@ function SiteBrandingRuntime() {
   return null;
 }
 
+// React Router retains the previous document scroll offset between pages.
+// Reset on route/filter navigation so shop links always open at the product header.
+// Same-page hash navigation remains untouched.
+function RouteScrollReset() {
+  const { pathname, search } = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname, search]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -74,6 +87,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <RouteScrollReset />
           <div className="min-h-screen flex flex-col">
             <Header />
             <CartDrawer />
