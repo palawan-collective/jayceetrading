@@ -25,6 +25,7 @@ function ManilaClock() {
   const time = new Intl.DateTimeFormat("en-PH", {
     timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
   }).format(now);
+  const shortTime = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit", hour12: true }).format(now);
   const fullDate = new Intl.DateTimeFormat("en-PH", {
     timeZone: "Asia/Manila", weekday: "long", month: "long", day: "numeric", year: "numeric",
   }).format(now);
@@ -35,7 +36,7 @@ function ManilaClock() {
   return (
     <div className="manila-clock" aria-label={`Manila time ${time}, ${fullDate}`}>
       <span className="manila-clock__zone"><Clock size={12} /> Manila time</span>
-      <time className="manila-clock__time" dateTime={now.toISOString()}>{time}</time>
+      <time className="manila-clock__time" dateTime={now.toISOString()}><span className="manila-clock__desktop-time">{time}</span><span className="manila-clock__mobile-time">{shortTime}</span></time>
       <span className="manila-clock__date manila-clock__date--full">{fullDate}</span>
       <span className="manila-clock__date manila-clock__date--compact">{compactDate}</span>
     </div>
