@@ -63,6 +63,14 @@ export default function Header() {
 
   const closeMenu = () => setMobileOpen(false);
 
+  useEffect(() => { setMobileOpen(false); }, [location.pathname, location.hash, location.search]);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setMobileOpen(false); };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [mobileOpen]);
+
   return (
     <header className="site-header" style={{ backgroundColor: headerBackground, color: headerTextColor }}>
       <div className="site-header__utility"><div className="container site-header__utility-inner"><span className="utility-location"><span className="utility-location__dot" /> Puerto Princesa · Palawan</span><ManilaClock /></div></div>
@@ -84,14 +92,15 @@ export default function Header() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/track")} aria-label="Track an order" className="header-icon header-track"><User size={17} /></Button>
           {header?.show_cart_icon !== false && <Button variant="ghost" size="icon" onClick={() => toggleCart()} aria-label={`Cart with ${cartCount} items`} className="header-icon header-cart"><ShoppingBag size={17} />{cartCount > 0 && <Badge className="cart-count">{cartCount}</Badge>}</Button>}
           <Button asChild className="header-order"><Link to="/order">Order online <ArrowIcon /></Link></Button>
-          <Button variant="ghost" size="icon" className="header-menu-button" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</Button>
+          <Button variant="ghost" size="icon" className="header-menu-button" type="button" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-controls="jaycee-mobile-navigation" aria-expanded={mobileOpen}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</Button>
         </div>
       </div>
 
       {mobileOpen && (
-        <nav className="site-mobile-nav" aria-label="Mobile navigation">
+        <nav id="jaycee-mobile-navigation" className="site-mobile-nav" aria-label="Mobile navigation">
           {storyLinks.map((item) => <a key={item.label} href={item.href} onClick={closeMenu}>{item.label}</a>)}
           <Link to="/order" onClick={closeMenu} className="site-mobile-nav__order">Order online <ArrowIcon /></Link>
+          <Link to="/track" onClick={closeMenu} className="site-mobile-nav__secondary">Track an order</Link>
         </nav>
       )}
     </header>
