@@ -22,6 +22,146 @@ async function auditCrawlFiles() {
   return checks.join("\n");
 }
 
+async function readPublished(path) {
+  try {
+    const response = await fetch(publishedSite + path, {
+      redirect: "error",
+      signal: AbortSignal.timeout(8000),
+    });
+    return { ok: response.ok, body: (await response.text()).slice(0, 262144) };
+  } catch {
+    return { ok: false, body: "" };
+  }
+}
+
+const unescape = value => value
+  .replace(/&amp;/g, "&")
+  .replace(/&#39;/g, "'")
+  .replace(/&quot;/g, '"')
+  .replace(/&lt;/g, "<")
+  .replace(/&gt;/g, ">");
+
+async function footprint() {
+  const [home, robots, sitemap, llms] = await Promise.all([
+    readPublished("/"),
+    readPublished("/robots.txt"),
+    readPublished("/sitemap.xml"),
+    readPublished("/llms.txt"),
+  ]);
+
+  const html = home.body;
+  const capture = pattern => unescape(((pattern.exec(html) || [])[1] || "").trim());
+
+  const title = capture(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const description = capture(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i);
+  const lang = capture(/<html[^>]+lang=["']([^"']+)["']/i);
+  const canonical = /<link[^>]+rel=["']canonical["']/i.test(html);
+  const openGraph = /<meta[^>]+property=["']og:title["']/i.test(html)
+    && /<meta[^>]+property=["']og:image["']/i.test(html);
+  const viewport = /<meta[^>]+name=["']viewport["']/i.test(html);
+  const h1Count = (html.match(/<h1[\s>]/gi) || []).length;
+  const images = html.match(/<img\b[^>]*>/gi) || [];
+  const missingAlt = images.filter(tag => !/\balt=/i.test(tag)).length;
+  const schemaTypes = [...new Set([...html.matchAll(/"@type"\s*:\s*"([^"]+)"/g)].map(match => match[1]))];
+  const sitemapPages = (sitemap.body.match(/<loc>/g) || []).length;
+  const robotsHasSitemap = /sitemap:/i.test(robots.body);
+
+  const checks = [
+    {
+      id: "https",
+      label: "Secure connection",
+      status: "pass",
+      detail: "HTTPS on every page",
+    },
+    {
+      id: "title",
+      label: "Page title",
+      status: title.length >= 15 && title.length <= 65 ? "pass" : title ? "warn" : "fail",
+      detail: title ? `${title.length} characters · ${title.slice(0, 48)}` : "No title tag found",
+    },
+    {
+      id: "description",
+      label: "Meta description",
+      status: description.length >= 50 && description.length <= 160 ? "pass" : description ? "warn" : "fail",
+      detail: description ? `${description.length} characters` : "No description for search results",
+    },
+    {
+      id: "canonical",
+      label: "Canonical link",
+      status: canonical ? "pass" : "warn",
+      detail: canonical ? "Tells search engines the main address" : "Missing canonical tag",
+    },
+    {
+      id: "openGraph",
+      label: "Social preview card",
+      status: openGraph ? "pass" : "warn",
+      detail: openGraph ? "Link previews show title and image" : "Add og:title and og:image",
+    },
+    {
+      id: "schema",
+      label: "Structured data",
+      status: schemaTypes.length ? "pass" : "fail",
+      detail: schemaTypes.length ? schemaTypes.slice(0, 4).join(", ") : "No JSON-LD business data",
+    },
+    {
+      id: "viewport",
+      label: "Mobile viewport",
+      status: viewport ? "pass" : "fail",
+      detail: viewport ? "Scales correctly on phones" : "No viewport meta tag",
+    },
+    {
+      id: "language",
+      label: "Page language",
+      status: lang ? "pass" : "warn",
+      detail: lang ? `Declared as ${lang}` : "No lang attribute",
+    },
+    {
+      id: "headings",
+      label: "Main heading",
+      status: h1Count === 1 ? "pass" : h1Count > 1 ? "warn" : "fail",
+      detail: `${h1Count} H1 heading${h1Count === 1 ? "" : "s"} on the home page`,
+    },
+    {
+      id: "altText",
+      label: "Image alt text",
+      status: images.length === 0 ? "warn" : missingAlt === 0 ? "pass" : missingAlt / images.length < 0.2 ? "warn" : "fail",
+      detail: images.length === 0 ? "No images detected in the HTML" : `${images.length - missingAlt} of ${images.length} images described`,
+    },
+    {
+      id: "robots",
+      label: "robots.txt",
+      status: robots.ok && robotsHasSitemap ? "pass" : robots.ok ? "warn" : "fail",
+      detail: robots.ok && robotsHasSitemap ? "Search engines allowed, sitemap declared" : robots.ok ? "Sitemap not declared" : "File not reachable",
+    },
+    {
+      id: "sitemap",
+      label: "Sitemap",
+      status: sitemap.ok && sitemapPages > 0 ? "pass" : "fail",
+      detail: sitemapPages ? `${sitemapPages} pages listed for Google and Bing` : "No pages listed",
+    },
+    {
+      id: "llms",
+      label: "AI crawler guide",
+      status: llms.ok ? "pass" : "warn",
+      detail: llms.ok ? "llms.txt gives AI engines your business facts" : "No llms.txt for AI answer engines",
+    },
+  ];
+
+  const passed = checks.filter(check => check.status === "pass").length;
+
+  return {
+    source: publishedSite,
+    checkedAt: new Date().toISOString(),
+    score: Math.round((passed / checks.length) * 100),
+    passed,
+    total: checks.length,
+    pages: sitemapPages,
+    schemaTypes,
+    aiFile: llms.ok,
+    checks,
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
@@ -50,6 +190,7 @@ export default async function handler(req, res) {
     const { action, keywords, trackerId } = req.body ?? {};
     const success = (source, result) => res.status(200).json({ source, checkedAt: new Date().toISOString(), result });
     if (action === "audit") return success(publishedSite, await auditCrawlFiles());
+    if (action === "footprint") return res.status(200).json(await footprint());
 
     const args = { projectId: OPENSEO_PROJECT_ID };
     let name;
