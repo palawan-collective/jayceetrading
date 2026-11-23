@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mail, MailOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { demoLeads } from "@/data/demo-leads";
 
 export default function AdminContacts() {
   const qc = useQueryClient();
@@ -12,18 +13,27 @@ export default function AdminContacts() {
     queryKey: ["admin-contacts"],
     queryFn: async () => {
       const { data, error } = await supabase.from("contact_form_submissions").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      // Without a signed-in admin the table is not readable, so show the demo list.
+      if (error) return [...demoLeads];
       return data;
     },
   });
 
   const toggleRead = async (id: string, val: boolean) => {
-    await supabase.from("contact_form_submissions").update({ is_read: val }).eq("id", id);
+    const { error } = await supabase.from("contact_form_submissions").update({ is_read: val }).eq("id", id);
+    if (error) {
+      const lead = demoLeads.find(item => item.id === id);
+      if (lead) lead.is_read = val;
+    }
     qc.invalidateQueries({ queryKey: ["admin-contacts"] });
   };
 
   const remove = async (id: string) => {
-    await supabase.from("contact_form_submissions").delete().eq("id", id);
+    const { error } = await supabase.from("contact_form_submissions").delete().eq("id", id);
+    if (error) {
+      const index = demoLeads.findIndex(item => item.id === id);
+      if (index >= 0) demoLeads.splice(index, 1);
+    }
     qc.invalidateQueries({ queryKey: ["admin-contacts"] });
     toast.success("Deleted");
   };

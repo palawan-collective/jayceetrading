@@ -174,6 +174,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Use POST." });
   }
 
+  const { action, keywords, trackerId } = req.body ?? {};
+
+  // The footprint check reads only the public website, so it works without a
+  // sign-in while the admin login is switched off for the client presentation.
+  if (action === "footprint") {
+    try {
+      return res.status(200).json(await footprint());
+    } catch {
+      return res.status(502).json({ error: "The site check could not complete." });
+    }
+  }
+
   const accessToken = /^Bearer ([^\s]+)$/.exec(req.headers.authorization || "")?.[1];
   if (!accessToken) return res.status(401).json({ error: "Sign in to use SEO tools." });
 
@@ -195,7 +207,6 @@ export default async function handler(req, res) {
     const { action, keywords, trackerId } = req.body ?? {};
     const success = (source, result) => res.status(200).json({ source, checkedAt: new Date().toISOString(), result });
     if (action === "audit") return success(publishedSite, await auditCrawlFiles());
-    if (action === "footprint") return res.status(200).json(await footprint());
 
     const args = { projectId: OPENSEO_PROJECT_ID };
     let name;

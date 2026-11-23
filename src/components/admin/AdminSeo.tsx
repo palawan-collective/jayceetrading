@@ -77,8 +77,7 @@ export default function AdminSeo() {
 
   async function session() {
     const { data } = await supabase.auth.getSession();
-    if (!data.session) throw new Error("Sign in again to use SEO tools.");
-    return data.session.access_token;
+    return data.session?.access_token ?? null;
   }
 
   const loadFootprint = useCallback(async () => {
@@ -88,7 +87,10 @@ export default function AdminSeo() {
       const token = await session();
       const response = await fetch("/api/seo", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ action: "footprint" }),
       });
       if (!response.headers.get("content-type")?.includes("application/json")) {
@@ -122,7 +124,10 @@ export default function AdminSeo() {
       const token = await session();
       const response = await fetch("/api/seo", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           action,
           keywords: keywords.split("\n").map(value => value.trim()).filter(Boolean),

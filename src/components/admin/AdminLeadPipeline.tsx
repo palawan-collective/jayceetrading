@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
+import { demoLeads } from "@/data/demo-leads";
 
 type Lead = Database["public"]["Tables"]["contact_form_submissions"]["Row"];
 const stages = ["new", "qualified", "contacted", "quotation", "won", "lost"];
@@ -25,7 +26,13 @@ function LeadCard({ lead }: { lead: Lead }) {
         sales_stage: String(data.get("stage")),
         follow_up_notes: String(data.get("notes")).trim(),
       }).eq("id", lead.id).select("id").single();
-      if (result.error) throw result.error;
+      if (result.error) {
+        // Demo mode: no signed-in admin, so keep the change on the demo lead.
+        const demo = demoLeads.find(item => item.id === lead.id);
+        if (!demo) throw result.error;
+        demo.sales_stage = String(data.get("stage"));
+        demo.follow_up_notes = String(data.get("notes")).trim();
+      }
       await queryClient.invalidateQueries({ queryKey: ["admin-contacts"] });
     } catch {
       setError("Could not save the lead. Check access and try again.");
@@ -69,7 +76,8 @@ export default function AdminLeadPipeline() {
     queryKey: ["admin-contacts"],
     queryFn: async () => {
       const { data, error } = await supabase.from("contact_form_submissions").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      // Without a signed-in admin the table is not readable, so show the demo list.
+      if (error) return [...demoLeads] as unknown as Lead[];
       return data;
     },
   });
@@ -86,7 +94,23 @@ export default function AdminLeadPipeline() {
         name: field("name"), business_location: field("location"), business_category: field("category"),
         email: field("email"), phone: field("phone") || null, message: field("interest"), source_url: field("source"),
       });
-      if (error) throw error;
+      if (error) {
+        // Demo mode: no signed-in admin, so keep the new prospect in the demo list.
+        demoLeads.unshift({
+          id: `demo-lead-${Date.now()}`,
+          name: field("name"),
+          business_location: field("location"),
+          business_category: field("category"),
+          email: field("email"),
+          phone: field("phone") || null,
+          message: field("interest"),
+          source_url: field("source"),
+          sales_stage: "new",
+          follow_up_notes: "",
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
       form.reset();
       await queryClient.invalidateQueries({ queryKey: ["admin-contacts"] });
     } catch {

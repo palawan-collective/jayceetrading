@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+// TEMPORARY: admin sign-in is switched off while the client presentation runs.
+// Set VITE_ADMIN_OPEN_ACCESS to "false" in the Vercel environment to turn the
+// email and password screen back on. Everything below still works unchanged
+// once a signed-in JayCee admin is present.
+const OPEN_ACCESS = import.meta.env.VITE_ADMIN_OPEN_ACCESS !== "false";
+
 export default function AdminAccess() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>();
@@ -39,8 +45,8 @@ export default function AdminAccess() {
     }
   }
 
+  if (OPEN_ACCESS || session?.user.app_metadata.jaycee_admin === true) return <Outlet />;
   if (session === undefined) return <p role="status" className="p-6">Checking admin access…</p>;
-  if (session?.user.app_metadata.jaycee_admin === true) return <Outlet />;
 
   const content: ReactNode = session ? (
     <>
