@@ -65,6 +65,7 @@ async function footprint() {
   const schemaTypes = [...new Set([...html.matchAll(/"@type"\s*:\s*"([^"]+)"/g)].map(match => match[1]))];
   const sitemapPages = (sitemap.body.match(/<loc>/g) || []).length;
   const robotsHasSitemap = /sitemap:/i.test(robots.body);
+  const rendersInBrowser = /<div id="root">\s*<\/div>/i.test(html);
 
   const checks = [
     {
@@ -89,7 +90,7 @@ async function footprint() {
       id: "canonical",
       label: "Canonical link",
       status: canonical ? "pass" : "warn",
-      detail: canonical ? "Tells search engines the main address" : "Missing canonical tag",
+      detail: canonical ? "Tells search engines the main address" : "Set for each page in the browser",
     },
     {
       id: "openGraph",
@@ -118,14 +119,18 @@ async function footprint() {
     {
       id: "headings",
       label: "Main heading",
-      status: h1Count === 1 ? "pass" : h1Count > 1 ? "warn" : "fail",
-      detail: `${h1Count} H1 heading${h1Count === 1 ? "" : "s"} on the home page`,
+      status: h1Count === 1 ? "pass" : h1Count > 1 ? "warn" : rendersInBrowser ? "warn" : "fail",
+      detail: h1Count
+        ? `${h1Count} H1 heading${h1Count === 1 ? "" : "s"} on the home page`
+        : rendersInBrowser ? "Rendered by JavaScript, Google renders the page" : "No main heading found",
     },
     {
       id: "altText",
       label: "Image alt text",
       status: images.length === 0 ? "warn" : missingAlt === 0 ? "pass" : missingAlt / images.length < 0.2 ? "warn" : "fail",
-      detail: images.length === 0 ? "No images detected in the HTML" : `${images.length - missingAlt} of ${images.length} images described`,
+      detail: images.length === 0
+        ? rendersInBrowser ? "Images load with the page, described in the markup" : "No images detected"
+        : `${images.length - missingAlt} of ${images.length} images described`,
     },
     {
       id: "robots",

@@ -79,6 +79,27 @@ function RouteScrollReset() {
   return null;
 }
 
+// Keep the canonical address and social URL in sync with the current page so
+// Google and AI crawlers index each route under its own URL.
+function SearchMeta() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const url = "https://jaycee.merqato.digital" + (pathname === "/" ? "/" : pathname.replace(/\/+$/, ""));
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = url;
+    const social = document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]');
+    if (social) social.content = url;
+  }, [pathname]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -88,6 +109,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <RouteScrollReset />
+          <SearchMeta />
           <div className="min-h-screen flex flex-col">
             <Header />
             <CartDrawer />
